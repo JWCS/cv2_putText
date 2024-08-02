@@ -261,7 +261,7 @@ TEST(Fancy_Background, "puttextfancy_background") {
 }
 
 TEST(Fancy_Demo, "puttextfancy_demo") {
-  cv::Mat img(1200, 1600, CV_8UC3, fancy::kGrey);
+  cv::Mat img(1600, 1600, CV_8UC3, fancy::kGrey);
   const auto fancy_fmt = cv::putTextFancy(
       fancy::kBlue, 4, true, fancy::kGreen, // blue shadow, green bg
       fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, 8, false)
@@ -295,12 +295,12 @@ TEST(Fancy_Demo, "puttextfancy_demo") {
 }
 
 TEST(Fancy_Sizes, "puttextfancy_sizes") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kGrey);
+  cv::Mat img(800, 800, CV_8UC3, fancy::kGrey);
   const cv::Point origin(40,40);
   std::vector<cv::Size> lineSizes{};
   cv::Size textSize{};
 
-  (cv::putTextFancy(img, origin)
+  cv::putTextFancy(img, origin).setTextSizeResult(&textSize).setLineSizesResult(&lineSizes)
     << "ABC\n\n"
   << cv::putTextOutline()
     << "DEFGHI\n\n"
@@ -312,7 +312,7 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
     << "yyyyyyyyyyyyyyyyyyyy\n\n"
   << cv::putTextBackground()
     << "Note that newline \\n have non-zero widths!"
-  ).setTextSizeResult(&textSize).setLineSizesResult(&lineSizes);
+  ;
 
   cv::Point lineOrigin = origin;
   int i = 0;

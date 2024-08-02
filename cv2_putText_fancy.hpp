@@ -122,6 +122,11 @@ public:
     //! Prints everything to the cv::Mat in the destructor
     ~image_ostream_fancy();
 
+    //! Size results (only after drawing/destruction!)
+    // Note: can't use movable references, and std::reference_wrapper too buggy
+    image_ostream_fancy& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
+    image_ostream_fancy& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
+
     //! Self operator<< to chain multiple settings
     image_ostream_fancy& operator<<(const image_ostream_fancy& new_settings);
     image_ostream_fancy& operator<<(const image_ostream& new_settings);

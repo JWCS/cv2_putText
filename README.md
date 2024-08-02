@@ -46,10 +46,11 @@ cv::putText(img, cv::Point(40, 40))
 
 std::vector<cv::Size> lineSizes{};
 cv::Size textSize{};
-(cv::putText(img, cv::Point(40,40))
+cv::putText(img, cv::Point(40,40))
+    .setTextSizeResult(&textSize).setLineSizesResult(&lineSizes)
   << "You can get the sizes of each line\nAnd the total size of the text!\n"
   << "Note: only when it actually gets drawn, then are they filled!"
-).setTextSizeResult(&textSize).setLineSizesResult(&lineSizes);
+;
 ```
 ```cpp
 /* But wait, there's more! */
