@@ -300,7 +300,8 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
   std::vector<cv::Size> lineSizes{};
   cv::Size textSize{};
 
-  (cv::putTextFancy(img, origin)
+  cv::putTextFancy(img, origin)
+    .setTextSizeResult(&textSize).setLineSizesResult(&lineSizes)
     << "ABC\n\n"
   << cv::putTextOutline()
     << "DEFGHI\n\n"
@@ -312,7 +313,7 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
     << "yyyyyyyyyyyyyyyyyyyy\n\n"
   << cv::putTextBackground()
     << "Note that newline \\n have non-zero widths!"
-  ).setTextSizeResult(&textSize).setLineSizesResult(&lineSizes);
+  ;
 
   cv::Point lineOrigin = origin;
   int i = 0;

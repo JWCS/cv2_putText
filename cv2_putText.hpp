@@ -90,6 +90,7 @@ cv::putText(image2, cv::Point(100,100), Scalar(i, i, 255))
 
 namespace cv {
 
+#ifndef CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #define CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X \
   X(Scalar, color, cv::Scalar::all(0)) \
   X(int, thickness, 2) \
@@ -98,13 +99,15 @@ namespace cv {
   X(int, fontFace, cv::FONT_HERSHEY_SIMPLEX) \
   X(int, lineType, 8) \
   X(bool, bottomLeftOrigin, false)
+#endif
 
 //! Creates and return image_ostream object to render text on the image like the std::cout does.
 //! An image_ostream class supports operator<< for both primitive and opencv types.
-class CV_EXPORTS image_ostream
+template <class Derived>
+class CV_EXPORTS _image_ostream
 {
 public:
-    image_ostream(
+    _image_ostream(
         InputOutputArray img, Point origin,
 #define X(type, name, default_val) type name = default_val,
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
@@ -113,22 +116,25 @@ public:
 
     //! Copy constructor is necessary because compiler cannot perform RVO in putText() function in some cases. To deal with it we introduce copy
     //! constructor which copies image_ostream object and it's internal string buffer.
-    image_ostream(const image_ostream&);
+    _image_ostream(const _image_ostream&);
 
     //! Prints everything to the cv::Mat in the destructor
-    ~image_ostream();
+    ~Derived(){ if(!_img.empty()){ nextLine(); } }
 
     //! Size results (only after drawing/destruction!)
     // Note: can't use movable references, and std::reference_wrapper too buggy
-    image_ostream& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
-    image_ostream& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
+    Derived& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
+    Derived& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
+    // Wrapper around cv::getTextSize, only works for a singular line
+    virtual cv::Size getLineSize(const std::string& line, int& baseline) const;
+    cv::Size getConvertedLineSize(const std::string& line, int& baseline, std::string* const pConvertedLine = nullptr) const;
 
     //! Self operator<< to chain multiple settings
-    image_ostream& operator<<(const image_ostream& new_settings);
+    _image_ostream& operator<<(const _image_ostream& new_settings);
 
     //! Defalt operator<< to take everything
     template <typename T>
-    image_ostream& operator<<(const T& x)
+    Derived& operator<<(const T& x)
     {
         _str << x;
         return *this;
@@ -141,14 +147,17 @@ public:
     typedef CoutType& (*ManipType)(CoutType&);
 
     //! Define an operator<< to take in std::endl and other manipulators
-    inline image_ostream& operator<<(ManipType manip)
+    inline Derived& operator<<(ManipType manip)
     {
         manip(_str);
         return *this;
     }
 
 protected:
+    virtual void drawLine(std::string const& line,
+        const int baseline, const int line_width, const int line_height, const int origin_correction);
     void nextLine();
+    virtual std::string convertUnknownChars(std::string const& str) const;
     static void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
 protected:
@@ -163,6 +172,7 @@ protected:
     std::vector<cv::Size>* _pLineSizes;
     cv::Size*              _pTextSize;
 };
+class image_ostream : public _image_ostream<image_ostream> {};
 
 //! Creates and return image_ostream object to render text on the image like the std::cout does.
 //! An image_ostream class supports operator<< for both primitive and opencv types.
@@ -195,45 +205,59 @@ static inline image_ostream putText(
 
 #ifdef CV2_PUTTEXT_HPP_IMPL
 
-image_ostream::~image_ostream()
+cv::Size image_ostream::getLineSize(const std::string& line, int& baseline) const
 {
-    if(!_img.empty()){
-        nextLine();
+    return cv::getTextSize(line, _fontFace, _fontScale, _thickness, &baseline);
+}
+
+cv::Size image_ostream::getConvertedLineSize(const std::string& line, int& baseline, std::string*const pConvertedLine) const
+{
+    if(pConvertedLine)
+    {
+        *pConvertedLine = convertUnknownChars(line);
+        return getLineSize(*pConvertedLine, baseline);
     }
+    return getLineSize(convertUnknownChars(line), baseline);
+}
+
+void image_ostream::drawLine(std::string const& line,
+    const int baseline, const int line_width, const int line_height, const int origin_correction)
+{
+    (void)baseline; (void)line_width; (void)line_height;
+    cv::putText(_img, line,
+        _origin + cv::Point(0, _offset + origin_correction),
+        _fontFace, _fontScale, _color, _thickness, _lineType, false);
 }
 
 void image_ostream::nextLine()
 {
+    if(_str.str().empty()){ return; }
+    const auto with_space = [c = _lineSpacing](int x) -> int { return (int)std::rint(c * x); };
+
     std::string line;
     int max_width = 0;
     do
     {
         std::getline(_str, line);
-        replaceAll(line, "\t", "  ");
 
         // baseline is the distance from the line letters are written on
         // to the bottom of characters that go below the line, like 'g' or 'y'
         // height without baseline will cover 'ABC' but not 'g'
-        int baseLine;
-        const cv::Size textSize = cv::getTextSize(line, _fontFace, _fontScale, _thickness, &baseLine);
+        int baseline;
+        const cv::Size textSize = getConvertedLineSize(line, baseline, &line);
 
         const int line_width = line.empty() ? 0 : textSize.width;
-        const int line_height = textSize.height + baseLine;
+        const int line_height = textSize.height + baseline;
         // Note: we shift textSize.height to make the origin the upper-left corner
         const int origin_correction = _bottomLeftOrigin ? 0 : textSize.height;
-        const int offset_height = (int)std::rint(line_height * _lineSpacing);
+        const int offset_height = with_space(line_height);
 
         if(_pLineSizes) _pLineSizes->emplace_back(line_width, offset_height);
         if(line_width > max_width) max_width = line_width;
 
-        if(line.empty()){
-            _offset += offset_height;
-            continue;
+        if(!line.empty()){
+            drawLine(line, baseline, line_width, line_height, origin_correction);
         }
-
-        cv::putText(_img, line,
-            _origin + cv::Point(0, _offset + origin_correction),
-            _fontFace, _fontScale, _color,_thickness, _lineType, false);
 
         _offset += offset_height;
     } while (!_str.eof());
@@ -288,7 +312,15 @@ image_ostream::image_ostream(const image_ostream& rhs)
 {
 }
 
-void image_ostream::replaceAll(std::string& str, const std::string& from, const std::string& to) {
+std::string image_ostream::convertUnknownChars(std::string const& str) const
+{
+    std::string ret(str);
+    replaceAll(ret, "\t", "  ");
+    return ret;
+}
+
+void image_ostream::replaceAll(std::string& str, const std::string& from, const std::string& to)
+{
     // https://stackoverflow.com/a/3418285/
     if(from.empty())
         return;

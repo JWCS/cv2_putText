@@ -94,12 +94,13 @@ namespace fancy {
 } // namespace fancy
 
 namespace cv {
-
+#ifndef CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
 #define CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X \
   X(std::optional<Scalar>, outlineColor, std::nullopt) \
   X(int, outlineThickness, 4) \
   X(bool, shadow, false) \
   X(std::optional<Scalar>, bgColor, std::nullopt)
+#endif
 
 //! Creates and return image_ostream_fancy object to render text on the image like the std::cout does.
 //! An image_ostream_fancy class supports operator<< for both primitive and opencv types.
@@ -141,8 +142,13 @@ public:
         return *this;
     }
 
+// Subclass Overrides
+public:
+    cv::Size getLineSize(const std::string& line, int& baseLine) const override;
 protected:
-    void nextLine();
+    int getMaxThickness() const;
+    void drawLine(std::string const& line,
+        const int baseline, const int line_width, const int line_height, const int origin_correction) override;
 
 protected:
 #define X(type, name, default_val) type _##name;
@@ -291,78 +297,51 @@ image_ostream_fancy::~image_ostream_fancy()
     }
 }
 
-void image_ostream_fancy::nextLine()
+int image_ostream_fancy::getMaxThickness() const
 {
-    if(_str.str().empty()){ return; }
+    return (_outlineColor && (_outlineThickness > 0))
+        ? _outlineThickness + _thickness : _thickness;
+}
 
-    const int max_thickness = (_outlineColor && (_outlineThickness > 0))
-      ? _outlineThickness + _thickness : _thickness;
-    const int shadow_offset = _shadow ? _outlineThickness : 0;
-    const auto with_space = [c = _lineSpacing](int x) -> int { return (int)std::rint(c * x); };
-    const auto with_scale = [c = _fontScale](int x) -> int { return (int)std::rint(c * x); };
+cv::Size image_ostream_fancy::getLineSize(const std::string& line, int& baseLine) const
+{
+    return cv::getTextSize(line, _fontFace, _fontScale, getMaxThickness(), &baseLine);
+}
 
-    std::string line;
-    int max_width = 0;
-    do
+void image_ostream_fancy::drawLine(std::string const& line,
+    const int baseline, const int line_width, const int line_height, const int origin_correction)
+{
+    // Background mask
+    if(_bgColor && line_width > 0)
     {
-        std::getline(_str, line);
-        replaceAll(line, "\t", "  ");
-
-        // baseline is the distance from the line letters are written on
-        // to the bottom of characters that go below the line, like 'g' or 'y'
-        // height without baseline will cover 'ABC' but not 'g'
-        int baseline;
-        const cv::Size textSize = cv::getTextSize(line, _fontFace, _fontScale, max_thickness, &baseline);
-
-        const int line_width = line.empty() ? 0 : textSize.width;
-        const int line_height = textSize.height + baseline;
-        // Note: we shift textSize.height to make the origin the upper-left corner
-        const int origin_correction = _bottomLeftOrigin ? 0 : textSize.height;
-        const int offset_height = with_space(line_height);
-
-        if(_pLineSizes) _pLineSizes->emplace_back(line_width, offset_height);
-        if(line_width > max_width) max_width = line_width;
-
-        if(line.empty()){
-            _offset += offset_height;
-            continue;
-        }
-
-        // Background mask
-        if(_bgColor && line_width > 0){
-            const int topBaselinePad = with_space(baseline / 2);
-            // pad with the top-baseline space; added to mirror the baseline underneath
-            _offset += topBaselinePad;
-            cv::rectangle(_img,
-                _origin + cv::Point(with_scale(-6),
-                    _offset - topBaselinePad),
-                _origin + cv::Point(with_scale(6) + line_width,
-                    _offset + with_space(line_height)),
-                _bgColor.value(), cv::FILLED);
-        }
-
-        // Outline text
-        if(_outlineColor && _outlineThickness > 0){
-            cv::putText(_img, line,
-                _origin + cv::Point(shadow_offset, _offset + origin_correction + shadow_offset),
-                _fontFace, _fontScale, _outlineColor.value(), max_thickness,
-                _lineType, false);
-        }
-
-        // Real text
-        cv::putText(_img, line,
-            _origin + cv::Point(0, _offset + origin_correction),
-            _fontFace, _fontScale, _color, _thickness,
-            _lineType, false);
-
-        _offset += offset_height;
-    } while (!_str.eof());
-    _str.str("");
-    _str.clear();
-    if(_pTextSize){
-      _pTextSize->width = std::max(max_width, _pTextSize->width);
-      _pTextSize->height = _offset;
+        const auto with_space = [c = _lineSpacing](int x) -> int { return (int)std::rint(c * x); };
+        const auto with_scale = [c = _fontScale](int x) -> int { return (int)std::rint(c * x); };
+        const int topBaselinePad = with_space(baseline / 2);
+        // pad with the top-baseline space; added to mirror the baseline underneath
+        _offset += topBaselinePad;
+        cv::rectangle(_img,
+            _origin + cv::Point(with_scale(-6),
+                _offset - topBaselinePad),
+            _origin + cv::Point(with_scale(6) + line_width,
+                _offset + with_space(line_height)),
+            _bgColor.value(), cv::FILLED);
     }
+
+    // Outline text
+    if(_outlineColor && _outlineThickness > 0)
+    {
+        const int shadow_offset = _shadow ? _outlineThickness : 0;
+        cv::putText(_img, line,
+            _origin + cv::Point(shadow_offset, _offset + origin_correction + shadow_offset),
+            _fontFace, _fontScale, _outlineColor.value(), getMaxThickness(),
+            _lineType, false);
+    }
+
+    // Real text
+    cv::putText(_img, line,
+        _origin + cv::Point(0, _offset + origin_correction),
+        _fontFace, _fontScale, _color, _thickness,
+        _lineType, false);
 }
 
 image_ostream_fancy& image_ostream_fancy::operator<<(const image_ostream_fancy& new_settings)
@@ -424,13 +403,6 @@ image_ostream_fancy::image_ostream_fancy(const image_ostream& rhs)
 } // namespace cv
 
 /* TODO:
- * The two nextLine() functions are almost identical.
- * . Make a drawLine(line, baseline, line_width, line_height, origin_correction)
- *   protected function, that nextLine calls, then rm nextLine from fancy.
- * . Redefine in fancy that _thickness is the max_thickness; have outLineThickness
- *   still as a parameter, but before fancy destructor, swap thickness to max_thickness,
- *   and carefully mention in drawLine that the "real" thickness of the text is
- *   outlineThickness. Or something cleaner. If not, don't "fix".
  * The << operator template in class prevents definition of a << operator for
  *   lhs image_ostream and rhs image_ostream_fancy.
  * . The trivial solution escapes me
