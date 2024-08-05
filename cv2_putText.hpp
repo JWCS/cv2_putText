@@ -97,13 +97,19 @@ namespace cv {
   X(double, lineSpacing, 1.1) \
   X(int, fontFace, cv::FONT_HERSHEY_SIMPLEX) \
   X(int, lineType, 8) \
-  X(bool, bottomLeftOrigin, false)
+  X(bool, bottomLeftOrigin, false) \
+  X(image_ostream::TextAlign, align, image_ostream::TextAlign::Left) \
+  X(bool, reverse, false) \
+  X(int, pad, 6)
 
 //! Creates and return image_ostream object to render text on the image like the std::cout does.
 //! An image_ostream class supports operator<< for both primitive and opencv types.
-class CV_EXPORTS image_ostream
+struct CV_EXPORTS image_ostream
 {
-public:
+
+    enum class TextAlign : unsigned { Left, Right, Center };
+    enum class VertAlign : unsigned { Top, Bottom, Mid };
+
     image_ostream(
         InputOutputArray img, Point origin,
 #define X(type, name, default_val) type name = default_val,
@@ -122,6 +128,8 @@ public:
     // Note: can't use movable references, and std::reference_wrapper too buggy
     image_ostream& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
     image_ostream& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
+    image_ostream& setTextboxResult(cv::Rect* const pRect){ _pRect = pRect; return *this; }
+    image_ostream& setOriginResult(cv::Point* const pPoint){ _pPoint = pPoint; return *this; }
 
     //! Self operator<< to chain multiple settings
     image_ostream& operator<<(const image_ostream& new_settings);
@@ -148,20 +156,30 @@ public:
     }
 
 protected:
+    // Does not handle newlines!
+    cv::Size getLineSize(const std::string& text, int& baseline) const
+    {
+        return cv::getTextSize(text, _fontFace, _fontScale, _thickness, &baseline);
+    }
+    cv::Point origin(int x, int y) const { return _origin + cv::Point(x, y); }
     void nextLine();
+    void reverse();
     static void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
 protected:
-    InputOutputArray& _img;
+    InputOutputArray _img;
+public:
     const Point _origin;
 #define X(type, name, default_val) type _##name;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-
-    int               _offset;
-    std::stringstream _str;
     std::vector<cv::Size>* _pLineSizes;
     cv::Size*              _pTextSize;
+    cv::Rect*              _pRect;
+    cv::Point*             _pPoint;
+protected:
+    int               _offset;
+    std::stringstream _str;
 };
 
 //! Creates and return image_ostream object to render text on the image like the std::cout does.
@@ -171,7 +189,9 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, bool bottomLeftOrigin=false)
+    int lineType=8, bool bottomLeftOrigin=false,
+    image_ostream::TextAlign align = image_ostream::TextAlign::Left,
+    bool reverse = false, int pad = 6 )
 {
     return image_ostream(img, origin,
 #define X(type, name, default_val) name,
@@ -184,13 +204,48 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, bool bottomLeftOrigin=false)
+    int lineType=8, bool bottomLeftOrigin=false,
+    image_ostream::TextAlign align = image_ostream::TextAlign::Left,
+    bool reverse = false, int pad = 6 )
 {
-    return image_ostream(Mat(), Point(0,0),
+    return image_ostream(noArray(), Point(0,0),
 #define X(type, name, default_val) name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
     0);
+}
+
+// Put text on the top or bottom of the rectangle
+image_ostream putText_RelativeTo(
+    InputOutputArray img, const Point& rect_tl, const Size& rect_size,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Left,
+    bool inside = false, int pad = 6 );
+
+// Put text on the left or right side of the rectangle
+image_ostream putText_RelativeTo(
+    InputOutputArray img, const Point& rect_tl, const Size& rect_size,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
+
+static inline image_ostream putText_RelativeTo(
+    InputOutputArray img, const cv::Rect& rect,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Left,
+    bool inside = false, int pad = 6 )
+{
+    return putText_RelativeTo(img, rect.tl(), rect.size(), vert, horz, inside, pad);
+}
+
+static inline image_ostream putText_RelativeTo(
+    InputOutputArray img, const cv::Rect& rect,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
+{
+    return putText_RelativeTo(img, rect.tl(), rect.size(),
+        horz, vert, inside, textboxBottomLeftOrigin, pad);
 }
 
 #ifdef CV2_PUTTEXT_HPP_IMPL
@@ -204,6 +259,9 @@ image_ostream::~image_ostream()
 
 void image_ostream::nextLine()
 {
+    if(_str.str().empty()){ return; }
+    if(_reverse){ reverse(); }
+
     std::string line;
     int max_width = 0;
     do
@@ -215,13 +273,17 @@ void image_ostream::nextLine()
         // to the bottom of characters that go below the line, like 'g' or 'y'
         // height without baseline will cover 'ABC' but not 'g'
         int baseLine;
-        const cv::Size textSize = cv::getTextSize(line, _fontFace, _fontScale, _thickness, &baseLine);
+        const cv::Size textSize = getLineSize(line, baseLine);
 
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseLine;
         // Note: we shift textSize.height to make the origin the upper-left corner
-        const int origin_correction = _bottomLeftOrigin ? 0 : textSize.height;
-        const int offset_height = (int)std::rint(line_height * _lineSpacing);
+        const int offset_correction = _bottomLeftOrigin ? 0 : textSize.height;
+        const int offset_height = (int)std::rint(line_height * _lineSpacing) * (_reverse ? -1 : 1);
+        const int alignment_shift =
+            _align == TextAlign::Center ? -line_width / 2 :
+            _align == TextAlign::Right  ? -line_width :
+            /* _align == Left */ 0;
 
         if(_pLineSizes) _pLineSizes->emplace_back(line_width, offset_height);
         if(line_width > max_width) max_width = line_width;
@@ -232,16 +294,43 @@ void image_ostream::nextLine()
         }
 
         cv::putText(_img, line,
-            _origin + cv::Point(0, _offset + origin_correction),
+            origin(alignment_shift, _offset + offset_correction),
             _fontFace, _fontScale, _color,_thickness, _lineType, false);
 
         _offset += offset_height;
     } while (!_str.eof());
     _str.str("");
     _str.clear();
-    if(_pTextSize){
-      _pTextSize->width = std::max(max_width, _pTextSize->width);
-      _pTextSize->height = _offset;
+    if(_pTextSize)
+    {
+        _pTextSize->width = max_width;
+        _pTextSize->height = _offset; // Negative allowed?
+    }
+    if(_pRect)
+    {
+        // The constructor of 2 points does the math for us
+        int x1 = _origin.x;
+        int x2 = _origin.x;
+        if(_align == TextAlign::Center)
+        {
+            x1 -= max_width / 2;
+            x2 += max_width / 2;
+        }
+        else if(_align == TextAlign::Right)
+        {
+            x1 -= max_width;
+        }
+        else
+        {
+            x2 += max_width;
+        }
+        *_pRect = cv::Rect(
+              cv::Point(x1, _origin.y), cv::Point(x2, _origin.y + _offset));
+    }
+    if(_pPoint)
+    {
+        _pPoint->x = _origin.x;
+        _pPoint->y = _origin.y;
     }
 }
 
@@ -269,9 +358,11 @@ image_ostream::image_ostream(
 #define X(type, name, default_val) , _##name(name)
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-    , _offset(0)
     , _pLineSizes(nullptr)
     , _pTextSize(nullptr)
+    , _pRect(nullptr)
+    , _pPoint(nullptr)
+    , _offset(0)
 { (void)_;
 }
 
@@ -281,11 +372,94 @@ image_ostream::image_ostream(const image_ostream& rhs)
 #define X(type, name, default_val) , _##name(rhs._##name)
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-    , _offset(rhs._offset)
-    , _str(rhs._str.str())
     , _pLineSizes(rhs._pLineSizes)
     , _pTextSize(rhs._pTextSize)
+    , _pRect(rhs._pRect)
+    , _pPoint(rhs._pPoint)
+    , _offset(rhs._offset)
+    , _str(rhs._str.str())
 {
+}
+
+// Put text on the top or bottom of the rectangle
+image_ostream putText_RelativeTo(
+    InputOutputArray img, const Point& rect_tl, const Size& rect_size,
+    image_ostream::VertAlign vert, image_ostream::TextAlign horz,
+    bool inside, int pad )
+{
+    // Inside meaningless for Mid-Center
+    using TA = image_ostream::TextAlign;
+    using VA = image_ostream::VertAlign;
+    // The only case where text not within left/right sides
+    // This fn: everything is inside of left/right sides
+    if(vert == VA::Mid && horz != TA::Center && !inside)
+        return putText_RelativeTo(img, rect_tl, rect_size, horz, vert, inside, pad);
+
+    const int x = rect_tl.x + (
+        horz == TA::Center ? rect_size.width / 2 :
+        horz == TA::Right ? rect_size.width - pad : // with_scale?
+        /* Left */ pad ); // with_scale?
+    const bool blOrigin = ((vert == VA::Top) && !inside) || ((vert == VA::Bottom) && inside);
+    const int y = rect_tl.y + (
+        vert == VA::Top ? (inside ? pad : -pad) :
+        vert == VA::Bottom ? rect_size.height + (inside ? -pad : pad) :
+        /* Mid */ rect_size.height / 2 );
+    auto fmt = image_ostream(img, cv::Point(x, y));
+    fmt._align = horz;
+    fmt._bottomLeftOrigin = blOrigin;
+    // move the offset up, instead of down, such that whole text block has origin at bottomLeft
+    fmt._reverse = blOrigin;
+    return fmt;
+}
+
+// Put text on the left or right side of the rectangle
+image_ostream putText_RelativeTo(
+    InputOutputArray img, const Point& rect_tl, const Size& rect_size,
+    image_ostream::TextAlign horz, image_ostream::VertAlign vert,
+    bool inside, bool textboxBottomLeftOrigin, int pad )
+{
+    using TA = image_ostream::TextAlign;
+    using VA = image_ostream::VertAlign;
+    // Only handle the outside cases here
+    if(horz == TA::Center || inside)
+        return putText_RelativeTo(img, rect_tl, rect_size, vert, horz, inside, pad);
+
+    const bool blOrigin = textboxBottomLeftOrigin;
+    // Note: this x has opposite padding directions as other function, bc outside left/right
+    const int x = rect_tl.x + (
+        horz == TA::Right ? rect_size.width + pad :
+        /* Left */ -pad );
+    const int y = rect_tl.y + (
+        vert == VA::Top ? (blOrigin ? -pad : pad) :
+        vert == VA::Bottom ? rect_size.height + (blOrigin ? -pad : pad) :
+        /* Mid */ rect_size.height / 2 );
+    auto fmt = image_ostream(img, cv::Point(x, y));
+    if(horz == TA::Left)
+        fmt._align = TA::Right; // flip
+    fmt._bottomLeftOrigin = blOrigin;
+    // move the offset up, instead of down, such that whole text block has origin at bottomLeft
+    fmt._reverse = blOrigin;
+    return fmt;
+}
+
+void image_ostream::reverse()
+{
+    std::string line;
+    std::vector<std::string> lines;
+    while(!std::getline(_str, line).eof())
+    {
+        lines.push_back(std::move(line));
+    }
+    lines.push_back(std::move(line));
+    _str.str("");
+    _str.clear();
+    if(lines.empty()){ return; }
+    auto rit = lines.crbegin();
+    _str << *rit;
+    while(++rit != lines.crend())
+    {
+        _str << '\n' << *rit;
+    }
 }
 
 void image_ostream::replaceAll(std::string& str, const std::string& from, const std::string& to) {

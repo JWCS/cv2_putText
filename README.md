@@ -8,13 +8,16 @@
 * More ergonomic parameter defaults and ordering
 * Formats can be saved as variables, for re-use: `auto format_1 = cv::putText(color_1, thickness_1, ...);`
 * Intuitive origin: defaults to UPPER left, not baseline lower left
+* Allows right-justified text/origin
+* Minimal changes/API, faithful to original OpenCV proposal
 
 `cv2_putText_fancy.hpp`:
 * Does everything `cv2_putText.hpp` does, and...
 * Outlines
 * Shadows
 * Backgrounds
-* and any combination thereof
+    * and any combination thereof
+* Relative positioning and alignment to other objects
 
 ## Usage
 ###### The gh md cpp syntax highlighting is not handling strings correctly; sorry
@@ -54,6 +57,8 @@ cv::putText(img, cv::Point(40,40))
 ```
 ```cpp
 /* But wait, there's more! */
+/* cv2_putText.hpp minimizes extra features/namespace pollution;
+ * here is the kitchen sink version, with all the features */
 #define CV2_PUTTEXT_FANCY_HPP_IMPL
 #include "cv2_putText_fancy.hpp"
 

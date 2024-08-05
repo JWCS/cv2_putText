@@ -71,6 +71,111 @@ TEST(NormalPositioning, "puttext_normal_positioning") {
   cv::imwrite(sNormalPositioning_FullFile, img);
 }
 
+TEST(NormalAlignment, "puttext_normal_alignment") {
+  int width = 800;
+  cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
+  const cv::Point origin1(width/2, 40);
+  cv::drawMarker(img, origin1, fancy::kRed);
+  cv::putText(img, origin1) << "Align Left";
+
+  const cv::Point origin2(width/2, 140);
+  cv::drawMarker(img, origin2, fancy::kRed);
+  {auto fmt = cv::putText(img, origin2);
+    fmt._align = cv::image_ostream::TextAlign::Center;
+    fmt << "Align Center"; }
+
+  const cv::Point origin3(width/2, 240);
+  cv::drawMarker(img, origin3, fancy::kRed);
+  {auto fmt = cv::putText(img, origin3);
+    fmt._align = cv::image_ostream::TextAlign::Right;
+    fmt << "Align Right"; }
+  cv::imwrite(sNormalAlignment_FullFile, img);
+}
+
+TEST(Normal_RelativeTo, "puttext_normal_relativeto"){
+  cv::Mat img(800, 800, CV_8UC3, fancy::kWhite);
+  const cv::Rect rect(150, 150, 500, 500);
+  cv::rectangle(img, rect, fancy::kRed, 2);
+  // 9 pos inside, 12 pos outside
+  // Top/bottom, outside and in
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, false) << "TL";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Center, false) << "TC";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Right, false) << "TR";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Left, false) << "BL";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Center, false) << "BC";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Right, false) << "BR";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, true) << "TL-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Center, true) << "TC-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Right, true) << "TR-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Left, true) << "BL-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Center, true) << "BC-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Right, true) << "BR-in";
+  // Left/right, outside
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Top, false) << "LT";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, false) << "LM";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Bottom, false) << "LB";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Top, false) << "RT";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, false) << "RM";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Bottom, false) << "RB";
+  // Middle, inside; these are kinda dup'd, but shouldn't be able to tell vis
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Center, fancy::VertAlign::Mid, true) << "CM-in";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, true) << "LM-in";
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, true) << "RM-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Mid, fancy::TextAlign::Left, true) << "LM-in";
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Mid, fancy::TextAlign::Right, true) << "RM-in";
+
+  cv::imwrite(sNormal_RelativeTo_FullFile, img);
+}
+
+TEST(Normal_RelativeToMultiline, "puttext_normal_relativeto_multiline"){
+  const int img_size = 900;
+  const int img_pad = 200;
+  cv::Mat img(img_size, img_size, CV_8UC3, fancy::kWhite);
+  cv::Rect bbox{};
+  cv::Point origin{};
+  auto box = [&](){
+      cv::rectangle(img, bbox, fancy::kBlue);
+      cv::drawMarker(img, origin, fancy::kRed);
+  };
+  const cv::Rect rect(img_pad, img_pad, img_size - 2*img_pad, img_size - 2*img_pad);
+  cv::rectangle(img, rect, fancy::kGreen, 2);
+
+  // 9 pos inside, 5*4 pos outside
+  // Top/bottom, outside and in
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, false).setOriginResult(&origin).setTextboxResult(&bbox) << "TL" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Center, false).setOriginResult(&origin).setTextboxResult(&bbox) << "TC" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Right, false).setOriginResult(&origin).setTextboxResult(&bbox) << "TR" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Left, false).setOriginResult(&origin).setTextboxResult(&bbox) << "BL" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Center, false).setOriginResult(&origin).setTextboxResult(&bbox) << "BC" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Right, false).setOriginResult(&origin).setTextboxResult(&bbox) << "BR" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, true).setOriginResult(&origin).setTextboxResult(&bbox) << "TL-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Center, true).setOriginResult(&origin).setTextboxResult(&bbox) << "TC-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Right, true).setOriginResult(&origin).setTextboxResult(&bbox) << "TR-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Left, true).setOriginResult(&origin).setTextboxResult(&bbox) << "BL-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Center, true).setOriginResult(&origin).setTextboxResult(&bbox) << "BC-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Right, true).setOriginResult(&origin).setTextboxResult(&bbox) << "BR-in" << "\nMulti\nLine!"; box();
+  // Left/right, outside
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Top, false).setOriginResult(&origin).setTextboxResult(&bbox) << "LT" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, false).setOriginResult(&origin).setTextboxResult(&bbox) << "LM" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Bottom, false).setOriginResult(&origin).setTextboxResult(&bbox) << "LB" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Top, false).setOriginResult(&origin).setTextboxResult(&bbox) << "RT" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, false).setOriginResult(&origin).setTextboxResult(&bbox) << "RM" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Bottom, false).setOriginResult(&origin).setTextboxResult(&bbox) << "RB" << "\nMulti\nLine!"; box();
+  // Middle, inside << "\nMulti\nLine!"; box(); these are kinda dup'd, but shouldn't be able to tell vis
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Center, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << "CM-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << "LM-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << "RM-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Mid, fancy::TextAlign::Left, true).setOriginResult(&origin).setTextboxResult(&bbox) << "LM-in" << "\nMulti\nLine!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::VertAlign::Mid, fancy::TextAlign::Right, true).setOriginResult(&origin).setTextboxResult(&bbox) << "RM-in" << "\nMulti\nLine!"; box();
+  // When you probably want to have the textbox origin at bottom left
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Top, false, true).setOriginResult(&origin).setTextboxResult(&bbox)    << "LT" << "\nbottomLeft\n_origin=True!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Bottom, false, true).setOriginResult(&origin).setTextboxResult(&bbox) << "LB" << "\nbottomLeft\n_origin=True!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Top, false, true).setOriginResult(&origin).setTextboxResult(&bbox)    << "RT" << "\nbottomLeft\n_origin=True!"; box();
+  cv::putText_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Bottom, false, true).setOriginResult(&origin).setTextboxResult(&bbox) << "RB" << "\nbottomLeft\n_origin=True!"; box();
+
+  cv::imwrite(sNormal_RelativeToMultiline_FullFile, img);
+}
+
 TEST(Normal_StackFmts, "puttext_normal_stackfmts"){
   cv::Mat img(800, 800, CV_8UC3, fancy::kWhite);
   {
@@ -328,6 +433,34 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
   cv::imwrite(sFancy_Sizes_FullFile, img);
 }
 
+TEST(Fancy_RelativeTo, "puttextfancy_relativeto"){
+  const int img_size = 900;
+  const int img_pad = 200;
+  cv::Mat img(img_size, img_size, CV_8UC3, fancy::kWhite);
+  cv::Rect bbox{};
+  cv::Point origin{};
+  auto box = [&](){
+      cv::rectangle(img, bbox, fancy::kBlue);
+      cv::drawMarker(img, origin, fancy::kRed);
+  };
+  const cv::Rect rect(img_pad, img_pad, img_size - 2*img_pad, img_size - 2*img_pad);
+  cv::rectangle(img, rect, fancy::kGreen, 2);
+
+  cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, false).setOriginResult(&origin).setTextboxResult(&bbox) << "TL" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Right, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "TR" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Center, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextShadow() << "BC" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Center, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextBackground() << "TC-in" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Right, true).setOriginResult(&origin).setTextboxResult(&bbox) << "BR-in" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "LM" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Top, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextShadow() << "RT" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Center, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextBackground() << "CM-in" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << "LM-in" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "RM-in" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Bottom, false, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextShadow() << "RB" << "\nbottomLeft\n_origin=True!"; box();
+
+  cv::imwrite(sFancy_RelativeTo_FullFile, img);
+}
+
 /*
 TEST(Fancy_IntoReg1, "puttextfancy_intoreg1"){
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
@@ -368,6 +501,9 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Normal) \
   X(NormalReuse) \
   X(NormalPositioning) \
+  X(NormalAlignment) \
+  X(Normal_RelativeTo) \
+  X(Normal_RelativeToMultiline) \
   X(Normal_StackFmts) \
   X(Normal_Demo) \
   X(Normal_Sizes) \
@@ -378,14 +514,15 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Fancy_Shadow) \
   X(Fancy_Background) \
   X(Fancy_Demo) \
-  X(Fancy_Sizes)
+  X(Fancy_Sizes) \
+  X(Fancy_RelativeTo) \
   //X(Fancy_IntoReg1)
   //X(Fancy_IntoReg2)
-
 
 #define STR_EQ(a, b) (strcmp(a, b) == 0)
 
 int main(int argc, char** argv) {
+  cv::setBreakOnError(true);
   if(argc > 1) {
     for(int i = 1; i < argc; i++) {
       if(false){

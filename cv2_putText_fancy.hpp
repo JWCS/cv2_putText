@@ -91,6 +91,9 @@ namespace fancy {
     static const cv::Scalar kBlue = cv::Scalar(255, 0, 0);
     static const cv::Scalar kGreen = cv::Scalar(0x49, 0xB1, 0x54);
 
+    using TextAlign = cv::image_ostream::TextAlign;
+    using VertAlign = cv::image_ostream::VertAlign;
+
 } // namespace fancy
 
 namespace cv {
@@ -126,6 +129,8 @@ public:
     // Note: can't use movable references, and std::reference_wrapper too buggy
     image_ostream_fancy& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
     image_ostream_fancy& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
+    image_ostream_fancy& setTextboxResult(cv::Rect* const pRect){ _pRect = pRect; return *this; }
+    image_ostream_fancy& setOriginResult(cv::Point* const pPoint){ _pPoint = pPoint; return *this; }
 
     //! Self operator<< to chain multiple settings
     image_ostream_fancy& operator<<(const image_ostream_fancy& new_settings);
@@ -147,22 +152,26 @@ public:
     }
 
 protected:
+    // Does not handle newlines!
+    cv::Size getLineSize(const std::string& text, int& baseline) const
+    {
+        return cv::getTextSize(text, _fontFace, _fontScale, maxThickness(), &baseline);
+    }
     void nextLine();
+    int maxThickness() const { return (_outlineColor && (_outlineThickness > 0)) ? _outlineThickness + _thickness : _thickness; }
 
-protected:
+public:
 #define X(type, name, default_val) type _##name;
     CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
 #undef X
 };
 
-/*
 static inline image_ostream_fancy operator<<(const image_ostream& lhs, const image_ostream_fancy& rhs)
 {
     image_ostream_fancy fancy_settings(lhs);
     fancy_settings << rhs;
     return fancy_settings;
 }
-*/
 
 static inline image_ostream_fancy putTextOutline(
     cv::InputOutputArray img, cv::Point origin,
@@ -180,7 +189,7 @@ static inline image_ostream_fancy putTextOutline(
     cv::Scalar outlineColor = fancy::kBlack, int outlineThickness = 4,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextOutline(Mat(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineColor, outlineThickness, fontFace);
+    return putTextOutline(noArray(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineColor, outlineThickness, fontFace);
 }
 
 static inline image_ostream_fancy putTextShadow(
@@ -199,7 +208,7 @@ static inline image_ostream_fancy putTextShadow(
     cv::Scalar outlineColor = fancy::kShadow, int outlineThickness = 4,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextShadow(Mat(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineColor, outlineThickness, fontFace);
+    return putTextShadow(noArray(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineColor, outlineThickness, fontFace);
 }
 
 static inline image_ostream_fancy putTextBackground(
@@ -218,7 +227,7 @@ static inline image_ostream_fancy putTextBackground(
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextBackground(Mat(), Point(0,0), color, bgColor, thickness, fontScale, lineSpacing, fontFace);
+    return putTextBackground(noArray(), Point(0,0), color, bgColor, thickness, fontScale, lineSpacing, fontFace);
 }
 
 /* Note: if the compiler complains about ambigous overload, you can use
@@ -232,7 +241,9 @@ static inline image_ostream_fancy putTextBackground(
     cv::Scalar color = fancy::kWhite, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
     int fontFace = FONT_HERSHEY_SIMPLEX, \
-    int lineType = 8, bool bottomLeftOrigin = false
+    int lineType = 8, bool bottomLeftOrigin = false, \
+    image_ostream::TextAlign align = image_ostream::TextAlign::Left, \
+    bool reverse = false, int pad = 6
 #define OPT_ALL_DEF
 
 static inline image_ostream_fancy putText(
@@ -250,7 +261,7 @@ static inline image_ostream_fancy putText(
 static inline image_ostream_fancy putText(
     CV2_PUTTEXT_FANCY_HPP__putTextFancyApi )
 {
-    return image_ostream_fancy(Mat(), Point(0,0),
+    return image_ostream_fancy(noArray(), Point(0,0),
 #define X(type, name, default_val) name,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
@@ -276,7 +287,7 @@ static inline image_ostream_fancy putTextFancy(
 static inline image_ostream_fancy putTextFancy(
     CV2_PUTTEXT_FANCY_HPP__putTextFancyApi )
 {
-    return image_ostream_fancy(Mat(), Point(0,0),
+    return image_ostream_fancy(noArray(), Point(0,0),
 #define X(type, name, default_val) name,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
@@ -286,6 +297,45 @@ static inline image_ostream_fancy putTextFancy(
 
 #undef OPT_ALL_DEF
 #undef CV2_PUTTEXT_FANCY_HPP__putTextFancyApi
+
+// Put text on the top or bottom of the rectangle
+static inline image_ostream_fancy putTextFancy_RelativeTo(
+    InputOutputArray img, const Point& rect_tl, const Size& rect_size,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Left,
+    bool inside = false, int pad = 6 )
+{
+    return image_ostream_fancy(putText_RelativeTo(img, rect_tl, rect_size, vert, horz, inside, pad));
+}
+
+// Put text on the left or right side of the rectangle
+static inline image_ostream_fancy putTextFancy_RelativeTo(
+    InputOutputArray img, const Point& rect_tl, const Size& rect_size,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
+{
+    return image_ostream_fancy(putText_RelativeTo(img, rect_tl, rect_size, horz, vert, inside, textboxBottomLeftOrigin, pad));
+}
+
+static inline image_ostream_fancy putTextFancy_RelativeTo(
+    InputOutputArray img, const cv::Rect& rect,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Left,
+    bool inside = false, int pad = 6 )
+{
+    return putTextFancy_RelativeTo(img, rect.tl(), rect.size(), vert, horz, inside, pad);
+}
+
+static inline image_ostream_fancy putTextFancy_RelativeTo(
+    InputOutputArray img, const cv::Rect& rect,
+    image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
+    image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
+{
+    return putTextFancy_RelativeTo(img, rect.tl(), rect.size(),
+        horz, vert, inside, textboxBottomLeftOrigin, pad);
+}
 
 #ifdef CV2_PUTTEXT_FANCY_HPP_IMPL
 
@@ -299,9 +349,8 @@ image_ostream_fancy::~image_ostream_fancy()
 void image_ostream_fancy::nextLine()
 {
     if(_str.str().empty()){ return; }
+    if(_reverse){ reverse(); }
 
-    const int max_thickness = (_outlineColor && (_outlineThickness > 0))
-      ? _outlineThickness + _thickness : _thickness;
     const int shadow_offset = _shadow ? _outlineThickness : 0;
     const auto with_space = [c = _lineSpacing](int x) -> int { return (int)std::rint(c * x); };
     const auto with_scale = [c = _fontScale](int x) -> int { return (int)std::rint(c * x); };
@@ -317,13 +366,17 @@ void image_ostream_fancy::nextLine()
         // to the bottom of characters that go below the line, like 'g' or 'y'
         // height without baseline will cover 'ABC' but not 'g'
         int baseline;
-        const cv::Size textSize = cv::getTextSize(line, _fontFace, _fontScale, max_thickness, &baseline);
+        const cv::Size textSize = getLineSize(line, baseline);
 
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseline;
         // Note: we shift textSize.height to make the origin the upper-left corner
-        const int origin_correction = _bottomLeftOrigin ? 0 : textSize.height;
-        const int offset_height = with_space(line_height);
+        const int offset_correction = _bottomLeftOrigin ? 0 : textSize.height;
+        const int offset_height = (int)std::rint(line_height * _lineSpacing) * (_reverse ? -1 : 1);
+        const int alignment_shift =
+            _align == TextAlign::Center ? -line_width / 2 :
+            _align == TextAlign::Right  ? -line_width :
+            /* _align == Left */ 0;
 
         if(_pLineSizes) _pLineSizes->emplace_back(line_width, offset_height);
         if(line_width > max_width) max_width = line_width;
@@ -339,9 +392,9 @@ void image_ostream_fancy::nextLine()
             // pad with the top-baseline space; added to mirror the baseline underneath
             _offset += topBaselinePad;
             cv::rectangle(_img,
-                _origin + cv::Point(with_scale(-6),
+                origin(with_scale(-_pad) + alignment_shift,
                     _offset - topBaselinePad),
-                _origin + cv::Point(with_scale(6) + line_width,
+                origin(with_scale(_pad) + alignment_shift + line_width,
                     _offset + with_space(line_height)),
                 _bgColor.value(), cv::FILLED);
         }
@@ -349,14 +402,15 @@ void image_ostream_fancy::nextLine()
         // Outline text
         if(_outlineColor && _outlineThickness > 0){
             cv::putText(_img, line,
-                _origin + cv::Point(shadow_offset, _offset + origin_correction + shadow_offset),
-                _fontFace, _fontScale, _outlineColor.value(), max_thickness,
+                origin(alignment_shift + shadow_offset,
+                    _offset + offset_correction + shadow_offset),
+                _fontFace, _fontScale, _outlineColor.value(), maxThickness(),
                 _lineType, false);
         }
 
         // Real text
         cv::putText(_img, line,
-            _origin + cv::Point(0, _offset + origin_correction),
+            origin(alignment_shift, _offset + offset_correction),
             _fontFace, _fontScale, _color, _thickness,
             _lineType, false);
 
@@ -364,9 +418,36 @@ void image_ostream_fancy::nextLine()
     } while (!_str.eof());
     _str.str("");
     _str.clear();
-    if(_pTextSize){
-      _pTextSize->width = std::max(max_width, _pTextSize->width);
-      _pTextSize->height = _offset;
+    if(_pTextSize)
+    {
+        _pTextSize->width = max_width;
+        _pTextSize->height = _offset; // Negative allowed?
+    }
+    if(_pRect)
+    {
+        // The constructor of 2 points does the math for us
+        int x1 = _origin.x;
+        int x2 = _origin.x;
+        if(_align == TextAlign::Center)
+        {
+            x1 -= max_width / 2;
+            x2 += max_width / 2;
+        }
+        else if(_align == TextAlign::Right)
+        {
+            x1 -= max_width;
+        }
+        else
+        {
+            x2 += max_width;
+        }
+        *_pRect = cv::Rect(
+              cv::Point(x1, _origin.y), cv::Point(x2, _origin.y + _offset));
+    }
+    if(_pPoint)
+    {
+        _pPoint->x = _origin.x;
+        _pPoint->y = _origin.y;
     }
 }
 
