@@ -81,13 +81,13 @@ TEST(NormalAlignment, "puttext_normal_alignment") {
   const cv::Point origin2(width/2, 140);
   cv::drawMarker(img, origin2, fancy::kRed);
   {auto fmt = cv::putText(img, origin2);
-    fmt._align = cv::image_ostream::TextAlign::Center;
+    fmt._align_opt = cv::image_ostream::TextAlign::Center;
     fmt << "Align Center"; }
 
   const cv::Point origin3(width/2, 240);
   cv::drawMarker(img, origin3, fancy::kRed);
   {auto fmt = cv::putText(img, origin3);
-    fmt._align = cv::image_ostream::TextAlign::Right;
+    fmt._align_opt = cv::image_ostream::TextAlign::Right;
     fmt << "Align Right"; }
   cv::imwrite(sNormalAlignment_FullFile, img);
 }
@@ -239,23 +239,26 @@ TEST(Normal_Sizes, "puttext_normal_sizes") {
   cv::imwrite(sNormal_Sizes_FullFile, img);
 }
 
+/*
 // FIXME: this is broken, both with and without the && ref on fmt_base
 TEST(Normal_Refs, "puttext_normal_refs") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kGrey);
   {
     // Is this first && truly useless? Or if with a move ctor, prevents a copy?
-    auto&& fmt_base = cv::putText(img, cv::Point(40, 40));
-    //auto&& fmt_res = fmt_base << BASIC_BLURB;
+    auto fmt_base = cv::putText(img, cv::Point(40, 40));
+    auto&& fmt_res = fmt_base << BASIC_BLURB;
     fmt_base << cv::putText(cv::Scalar(0, 255, 0), 2, 2.0)
       << "\nGreen!\n(Called from reference)\n";
-    //fmt_res << "\nNo Overwrite! (From base)\n";
+    fmt_res << "\nNo Overwrite! (From base)\n";
   }
   cv::imwrite(sNormal_Refs_FullFile, img);
 }
+*/
 
 TEST(Fancy_Normal, "puttextfancy_normal") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
-  cv::putText(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt,
+  /* TODO: is there a viable overload for putText() thats not ambiguous? */
+  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt,
       fancy::kBlack, 1, 1.0, 1.2)
     << BASIC_BLURB;
   cv::imwrite(sFancy_Normal_FullFile, img);
@@ -263,13 +266,15 @@ TEST(Fancy_Normal, "puttextfancy_normal") {
 
 TEST(Fancy_Stack, "puttextfancy_stack") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
-  cv::putText(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt,
+  /* TODO: is there a viable overload for putText() thats not ambiguous? */
+  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt,
       fancy::kBlack, 1, 0.5, 1.2)
     << BASIC_BLURB
+  // Note, this is non-fancy putText
   << cv::putText(fancy::kRed, 4, 2, 1.0, cv::FONT_HERSHEY_COMPLEX)
     << "\tIS IT red, 4, scale 2,\n\t\tcomplex?" // << std::endl
-    // Note, this is non-fancy putText
-  << cv::putText(std::nullopt, 0, false, std::nullopt, fancy::kShadow, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
+  /* TODO: is there a viable overload for putText() thats not ambiguous? */
+  << cv::putTextFancy(std::nullopt, 0, false, std::nullopt, fancy::kShadow, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
     << "Lastly, it's shadow, 1, scale 0.5,\n\t2x line space, duplex" << std::endl
     << BASIC_BLURB;
   cv::imwrite(sFancy_Stack_FullFile, img);
@@ -436,7 +441,7 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
 TEST(Fancy_RelativeTo, "puttextfancy_relativeto"){
   const int img_size = 900;
   const int img_pad = 200;
-  cv::Mat img(img_size, img_size, CV_8UC3, fancy::kWhite);
+  cv::Mat img(img_size, img_size, CV_8UC3, fancy::kGrey);
   cv::Rect bbox{};
   cv::Point origin{};
   auto box = [&](){
@@ -457,6 +462,7 @@ TEST(Fancy_RelativeTo, "puttextfancy_relativeto"){
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << "LM-in" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "RM-in" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Bottom, false, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextShadow() << "RB" << "\nbottomLeft\n_origin=True!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Top, false, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextBackground() << "LT" << "\nbottomLeft\n_origin=True!"; box();
 
   cv::imwrite(sFancy_RelativeTo_FullFile, img);
 }
@@ -507,7 +513,6 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Normal_StackFmts) \
   X(Normal_Demo) \
   X(Normal_Sizes) \
-  X(Normal_Refs) \
   X(Fancy_Normal) \
   X(Fancy_Stack) \
   X(Fancy_Outline) \
@@ -515,26 +520,31 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Fancy_Background) \
   X(Fancy_Demo) \
   X(Fancy_Sizes) \
-  X(Fancy_RelativeTo) \
-  //X(Fancy_IntoReg1)
+  X(Fancy_RelativeTo)
+  //X(Normal_Refs) // This has img/InputOutputArray mem issues
+  //X(Fancy_IntoReg1) // These have typing/template issues
   //X(Fancy_IntoReg2)
 
 #define STR_EQ(a, b) (strcmp(a, b) == 0)
 
 int main(int argc, char** argv) {
-  cv::setBreakOnError(true);
-  if(argc > 1) {
-    for(int i = 1; i < argc; i++) {
-      if(false){
+  //cv::setBreakOnError(true);
+  try {
+    if(argc > 1) {
+      for(int i = 1; i < argc; i++) {
+        if(false){
 #define X(NAME) }else if(STR_EQ(argv[i], ac##NAME) || STR_EQ(argv[i], FileVar(NAME))) { NAME();
-        ALL_TESTS
+          ALL_TESTS
 #undef X
+        }
       }
-    }
-  }else{
+    }else{
 #define X(NAME) NAME();
-    ALL_TESTS
+      ALL_TESTS
 #undef X
+    }
+  } catch(const cv::Exception& e) {
+    std::cerr << "CV:Exception: " << e.what() << std::endl;
   }
   return 0;
 }

@@ -93,6 +93,8 @@ namespace fancy {
 
     using TextAlign = cv::image_ostream::TextAlign;
     using VertAlign = cv::image_ostream::VertAlign;
+    using TA = TextAlign;
+    using VA = VertAlign;
 
 } // namespace fancy
 
@@ -114,6 +116,9 @@ public:
 #define X(type, name, default_val) type name = default_val,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) std::optional<type> name = std::nullopt,
+        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
         void*_=0);
 
@@ -241,11 +246,16 @@ static inline image_ostream_fancy putTextBackground(
     cv::Scalar color = fancy::kWhite, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
     int fontFace = FONT_HERSHEY_SIMPLEX, \
-    int lineType = 8, bool bottomLeftOrigin = false, \
-    image_ostream::TextAlign align = image_ostream::TextAlign::Left, \
-    bool reverse = false, int pad = 6
+    int lineType = 8, std::optional<bool> bottomLeftOrigin = std::nullopt, \
+    std::optional<image_ostream::TextAlign> align = std::nullopt, \
+    std::optional<bool> reverse = std::nullopt
 #define OPT_ALL_DEF
 
+/* v1.2.1: Conflicting ambiguous overload with image_ostream::putText()
+ * Have not yet found a good api alternative, especially with
+ * bool/int/double implicit conversions.
+ */
+/*
 static inline image_ostream_fancy putText(
     cv::InputOutputArray img, cv::Point origin,
     CV2_PUTTEXT_FANCY_HPP__putTextFancyApi )
@@ -254,6 +264,7 @@ static inline image_ostream_fancy putText(
 #define X(type, name, default_val) name,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     0);
 }
@@ -265,9 +276,11 @@ static inline image_ostream_fancy putText(
 #define X(type, name, default_val) name,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     0);
 }
+*/
 
 #undef OPT_ALL_DEF
 #define OPT_ALL_DEF = std::nullopt
@@ -280,6 +293,7 @@ static inline image_ostream_fancy putTextFancy(
 #define X(type, name, default_val) name,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     0);
 }
@@ -291,6 +305,7 @@ static inline image_ostream_fancy putTextFancy(
 #define X(type, name, default_val) name,
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     0);
 }
@@ -348,6 +363,9 @@ image_ostream_fancy::~image_ostream_fancy()
 
 void image_ostream_fancy::nextLine()
 {
+#define X(type, name, default_val) const type _##name = _##name##_opt ? _##name##_opt.value() : default_val;
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
     if(_str.str().empty()){ return; }
     if(_reverse){ reverse(); }
 
@@ -388,14 +406,16 @@ void image_ostream_fancy::nextLine()
 
         // Background mask
         if(_bgColor && line_width > 0){
+            const int rev_mag = _reverse ? -1 : 1; // This isn't a perf fit, but it's a start
             const int topBaselinePad = with_space(baseline / 2);
             // pad with the top-baseline space; added to mirror the baseline underneath
             _offset += topBaselinePad;
+            const int _pad = 6;
             cv::rectangle(_img,
                 origin(with_scale(-_pad) + alignment_shift,
-                    _offset - topBaselinePad),
+                    _offset - topBaselinePad * rev_mag),
                 origin(with_scale(_pad) + alignment_shift + line_width,
-                    _offset + with_space(line_height)),
+                    _offset + with_space(line_height) * rev_mag),
                 _bgColor.value(), cv::FILLED);
         }
 
@@ -457,8 +477,11 @@ image_ostream_fancy& image_ostream_fancy::operator<<(const image_ostream_fancy& 
     nextLine();
     // Then, copy over the new settings
 #define X(type, name, default_val) _##name = new_settings._##name;
-    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
     CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) if(new_settings._##name##_opt) _##name##_opt = new_settings._##name##_opt.value();
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     // And any string
     _str << new_settings._str.str();
@@ -474,13 +497,17 @@ image_ostream_fancy& image_ostream_fancy::operator<<(const image_ostream& new_se
 image_ostream_fancy::image_ostream_fancy(
     InputOutputArray img, Point origin,
 #define X(type, name, default_val) type name,
-        CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
-        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+    CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) std::optional<type> name,
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     void*_)
     : image_ostream(img, origin
 #define X(type, name, default_val) , name
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     )
 #define X(type, name, default_val) , _##name(name)
@@ -513,10 +540,7 @@ image_ostream_fancy::image_ostream_fancy(const image_ostream& rhs)
  * The two nextLine() functions are almost identical.
  * . Make a drawLine(line, baseline, line_width, line_height, origin_correction)
  *   protected function, that nextLine calls, then rm nextLine from fancy.
- * . Redefine in fancy that _thickness is the max_thickness; have outLineThickness
- *   still as a parameter, but before fancy destructor, swap thickness to max_thickness,
- *   and carefully mention in drawLine that the "real" thickness of the text is
- *   outlineThickness. Or something cleaner. If not, don't "fix".
+ * . Tho this apparently requires either CRTP or virtuals...
  * The << operator template in class prevents definition of a << operator for
  *   lhs image_ostream and rhs image_ostream_fancy.
  * . The trivial solution escapes me

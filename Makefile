@@ -14,6 +14,8 @@ build/test: test.cpp cv2_putText_fancy.hpp cv2_putText.hpp
 
 build/%.png: build/test
 	cd ./build && ./test $*
+# Note: sometimes, easiest way to see failing tests, if imgs are there,
+# is to run `make -k build/*.png`
 
 .PHONY: debug
 debug: build/test

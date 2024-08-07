@@ -96,11 +96,12 @@ namespace cv {
   X(double, fontScale, 1.0) \
   X(double, lineSpacing, 1.1) \
   X(int, fontFace, cv::FONT_HERSHEY_SIMPLEX) \
-  X(int, lineType, 8) \
+  X(int, lineType, 8)
+
+#define CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X \
   X(bool, bottomLeftOrigin, false) \
   X(image_ostream::TextAlign, align, image_ostream::TextAlign::Left) \
   X(bool, reverse, false) \
-  X(int, pad, 6)
 
 //! Creates and return image_ostream object to render text on the image like the std::cout does.
 //! An image_ostream class supports operator<< for both primitive and opencv types.
@@ -114,6 +115,9 @@ struct CV_EXPORTS image_ostream
         InputOutputArray img, Point origin,
 #define X(type, name, default_val) type name = default_val,
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) std::optional<type> name = std::nullopt,
+        CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
         void*_=0);
 
@@ -173,6 +177,9 @@ public:
 #define X(type, name, default_val) type _##name;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
+#define X(type, name, default_val) std::optional<type> _##name##_opt;
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
     std::vector<cv::Size>* _pLineSizes;
     cv::Size*              _pTextSize;
     cv::Rect*              _pRect;
@@ -189,13 +196,14 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, bool bottomLeftOrigin=false,
-    image_ostream::TextAlign align = image_ostream::TextAlign::Left,
-    bool reverse = false, int pad = 6 )
+    int lineType=8, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
+    std::optional<bool> reverse = std::nullopt /*false*/ )
 {
     return image_ostream(img, origin,
 #define X(type, name, default_val) name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     0);
 }
@@ -204,13 +212,14 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, bool bottomLeftOrigin=false,
-    image_ostream::TextAlign align = image_ostream::TextAlign::Left,
-    bool reverse = false, int pad = 6 )
+    int lineType=8, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
+    std::optional<bool> reverse = std::nullopt /*false*/ )
 {
     return image_ostream(noArray(), Point(0,0),
 #define X(type, name, default_val) name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     0);
 }
@@ -259,6 +268,9 @@ image_ostream::~image_ostream()
 
 void image_ostream::nextLine()
 {
+#define X(type, name, default_val) const type _##name = _##name##_opt ? _##name##_opt.value() : default_val;
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
     if(_str.str().empty()){ return; }
     if(_reverse){ reverse(); }
 
@@ -295,7 +307,7 @@ void image_ostream::nextLine()
 
         cv::putText(_img, line,
             origin(alignment_shift, _offset + offset_correction),
-            _fontFace, _fontScale, _color,_thickness, _lineType, false);
+            _fontFace, _fontScale, _color, _thickness, _lineType, false);
 
         _offset += offset_height;
     } while (!_str.eof());
@@ -342,6 +354,9 @@ image_ostream& image_ostream::operator<<(const image_ostream& new_settings)
 #define X(type, name, default_val) _##name = new_settings._##name;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
+#define X(type, name, default_val) if(new_settings._##name##_opt) _##name##_opt = new_settings._##name##_opt.value();
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
     // And any string
     _str << new_settings._str.str();
     return *this;
@@ -352,11 +367,17 @@ image_ostream::image_ostream(
 #define X(type, name, default_val) type name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
+#define X(type, name, default_val) std::optional<type> name,
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
     void*_)
     : _img(img)
     , _origin(origin)
 #define X(type, name, default_val) , _##name(name)
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) , _##name##_opt(name)
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     , _pLineSizes(nullptr)
     , _pTextSize(nullptr)
@@ -371,6 +392,9 @@ image_ostream::image_ostream(const image_ostream& rhs)
     , _origin(rhs._origin)
 #define X(type, name, default_val) , _##name(rhs._##name)
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) , _##name##_opt(rhs._##name##_opt)
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     , _pLineSizes(rhs._pLineSizes)
     , _pTextSize(rhs._pTextSize)
@@ -405,10 +429,10 @@ image_ostream putText_RelativeTo(
         vert == VA::Bottom ? rect_size.height + (inside ? -pad : pad) :
         /* Mid */ rect_size.height / 2 );
     auto fmt = image_ostream(img, cv::Point(x, y));
-    fmt._align = horz;
-    fmt._bottomLeftOrigin = blOrigin;
+    fmt._align_opt = horz;
+    fmt._bottomLeftOrigin_opt = blOrigin;
     // move the offset up, instead of down, such that whole text block has origin at bottomLeft
-    fmt._reverse = blOrigin;
+    fmt._reverse_opt = blOrigin;
     return fmt;
 }
 
@@ -435,10 +459,10 @@ image_ostream putText_RelativeTo(
         /* Mid */ rect_size.height / 2 );
     auto fmt = image_ostream(img, cv::Point(x, y));
     if(horz == TA::Left)
-        fmt._align = TA::Right; // flip
-    fmt._bottomLeftOrigin = blOrigin;
+        fmt._align_opt = TA::Right; // flip
+    fmt._bottomLeftOrigin_opt = blOrigin;
     // move the offset up, instead of down, such that whole text block has origin at bottomLeft
-    fmt._reverse = blOrigin;
+    fmt._reverse_opt = blOrigin;
     return fmt;
 }
 

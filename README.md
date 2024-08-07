@@ -112,7 +112,7 @@ cv::putText(img, origin) << my_fmt << "Hello, World!" << std::endl;
 ```
 Note, this is implemented as a single file header, so in one and only one .cpp file, the IMPL flags must be defined. See the Installation section for more information.
 
-With reasonable defaults, the following putText functions are defined in the middle of the .hpp files, with reasonable defaults:
+With reasonable defaults, the following putText functions are defined in the middle of the .hpp files:
 ### `cv2_putText.hpp`:
 ```cpp
 cv::putText(
@@ -130,9 +130,34 @@ cv::putText(
     int lineType=8, bool bottomLeftOrigin=false);
 
 /* The returned object has the relevent methods: */
-this& setTextSizeResult (            cv::Size * pSize );
-this& setLineSizesResult(std::vector<cv::Size>* pSizes);
+this& setTextSizeResult (            cv::Size * pSize  );
+this& setLineSizesResult(std::vector<cv::Size>* pSizes );
+this& setTextBoxResult  (            cv::Rect * pRect  );
+this& setOriginResult   (            cv::Point* pOrigin);
+```
+There is also a "relative" version, that will set the origin to the side, top/bottom, or inside of a space.
+There's 2 varients, one with cv::Rect and one with cv::Point top-left and cv::Size.
+They don't support any text formatting, but you can chain into them with the regular `cv::putText` calls.
+```cpp
+// Put text on the top or bottom of the rectangle
+cv::putText_RelativeTo(
+    InputOutputArray /* cv::Mat */ img,
+    /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
+    VertAlign vert = Top, TextAlign horz = Left,
+    bool inside = false, int pad = 6 );
 
+// Put text on the left or right side of the rectangle; swapped horz/vert!
+cv::putText_RelativeTo(
+    InputOutputArray /* cv::Mat */ img,
+    /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
+    TextAlign horz = Right, VertAlign vert = Top,
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
+// Note: textboxBottomLeftOrigin makes all the text go up, instead of drop-down
+
+/* Enumeration types */
+/* Note: there are fancy:: aliases in cv2_putText_fancy.hpp */
+cv::image_ostream::TextAlign { Left, Right, Center } // enum class : unsigned
+cv::image_ostream::VertAlign { Top, Bottom, Mid } // enum class : unsigned
 ```
 ### `cv2_putText_fancy.hpp`:
 ```cpp
@@ -176,10 +201,33 @@ cv::putTextFancy(
     std::optional<cv::Scalar> bgColor = std::nullopt,
     cv::Scalar color = fancy::kWhite, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType = 8, bool bottomLeftOrigin = false);
+    int fontFace = cv::FONT_HERSHEY_SIMPLEX, int lineType = 8,
+    bool bottomLeftOrigin = false, TextAlign align = Left, bool reverse = false);
 
 cv::putText = cv::putTextFancy; // Alias for the generic version, ambiguous calls without more arguments
+
+/* Relative versions are exact same API as regular version */
+// Put text on the top or bottom of the rectangle
+cv::putTextFancy_RelativeTo(
+    InputOutputArray /* cv::Mat */ img,
+    /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
+    VertAlign vert = Top, TextAlign horz = Left,
+    bool inside = false, int pad = 6 );
+
+// Put text on the left or right side of the rectangle; swapped horz/vert!
+cv::putTextFancy_RelativeTo(
+    InputOutputArray /* cv::Mat */ img,
+    /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
+    TextAlign horz = Right, VertAlign vert = Top,
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
+// Note: textboxBottomLeftOrigin makes all the text go up, instead of drop-down
+
+/* Enumeration types, in fancy:: */
+/* Note: there are fancy:: aliases in cv2_putText_fancy.hpp */
+fancy::TextAlign { Left, Right, Center } // enum class : unsigned
+fancy::VertAlign { Top, Bottom, Mid } // enum class : unsigned
+fancy::TA = TextAlign; // alias
+fancy::VA = VertAlign; // alias
 ```
 ### Help! I don't see anything!
 To make the `<<` cout-style and formatter chaining work, the **first** `cv::putText` call _must_:
@@ -262,4 +310,5 @@ Any further modifications from the original code are under the OpenCV license.
 
 ## Known Issues (TODO)
 * Having a `cv2_putText` call here currently doesn't allow any further `cv2_putText_fancy` settings, due to operator overload issues.
+* The code has grown over time, has lots of redundancy, and could use a refactor. Simple solutions, however, have failed to compile or not-segfault, so any external review would be appreciated.
 
