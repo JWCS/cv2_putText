@@ -181,7 +181,7 @@ cv::putTextShadow(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
     cv::Scalar color = fancy::kWhite, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    cv::Scalar outlineColor = fancy::kShadow, int outlineThickness = 4,
+    int outlineThickness = 4, cv::Scalar outlineColor = fancy::kShadow,
     int fontFace = FONT_HERSHEY_SIMPLEX);
 
 cv::putTextBackground(

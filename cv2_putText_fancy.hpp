@@ -202,7 +202,7 @@ static inline image_ostream_fancy putTextShadow(
     cv::InputOutputArray img, cv::Point origin,
     cv::Scalar color = fancy::kWhite, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    cv::Scalar outlineColor = fancy::kShadow, int outlineThickness = 4,
+    int outlineThickness = 4, cv::Scalar outlineColor = fancy::kShadow,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
     return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
@@ -211,10 +211,10 @@ static inline image_ostream_fancy putTextShadow(
 static inline image_ostream_fancy putTextShadow(
     cv::Scalar color = fancy::kWhite, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    cv::Scalar outlineColor = fancy::kShadow, int outlineThickness = 4,
+    int outlineThickness = 4, cv::Scalar outlineColor = fancy::kShadow,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextShadow(noArray(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineColor, outlineThickness, fontFace);
+    return putTextShadow(noArray(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineThickness, outlineColor, fontFace);
 }
 
 static inline image_ostream_fancy putTextBackground(
