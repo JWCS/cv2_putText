@@ -189,7 +189,7 @@ cv::putTextShadow(
 cv::putTextBackground(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
     cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    int thickness = 2,
+    bool filled = true, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 
@@ -198,11 +198,12 @@ cv::putTextFancy(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
     std::optional<cv::Scalar> outlineColor, int outlineThickness = 4,
     bool shadow = false,
-    std::optional<cv::Scalar> bgColor = std::nullopt,
+    std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true,
     cv::Scalar color = fancy::kWhite, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX, int lineType = 8,
-    bool bottomLeftOrigin = false, TextAlign align = Left, bool reverse = false);
+    bool bottomLeftOrigin = nullopt(false),
+    TextAlign align = nullopt(Left), bool reverse = nullopt(false));
 
 cv::putText = cv::putTextFancy; // Alias for the generic version, ambiguous calls without more arguments
 
@@ -218,7 +219,7 @@ cv::putTextFancy_RelativeTo(
 cv::putTextFancy_RelativeTo(
     InputOutputArray /* cv::Mat */ img,
     /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
-    TextAlign horz = Right, VertAlign vert = Top,
+    TextAlign horz /* Right */, VertAlign vert = Top,
     bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
 // Note: textboxBottomLeftOrigin makes all the text go up, instead of drop-down
 

@@ -104,7 +104,8 @@ namespace cv {
   X(std::optional<Scalar>, outlineColor, std::nullopt) \
   X(int, outlineThickness, 4) \
   X(bool, shadow, false) \
-  X(std::optional<Scalar>, bgColor, std::nullopt)
+  X(std::optional<Scalar>, bgColor, std::nullopt) \
+  X(bool, bgFilled, true)
 
 //! Creates and return image_ostream_fancy object to render text on the image like the std::cout does.
 //! An image_ostream_fancy class supports operator<< for both primitive and opencv types.
@@ -185,7 +186,7 @@ static inline image_ostream_fancy putTextOutline(
     cv::Scalar outlineColor = fancy::kBlack, int outlineThickness = 4,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, false, std::nullopt, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, false, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextOutline(
@@ -204,7 +205,7 @@ static inline image_ostream_fancy putTextShadow(
     cv::Scalar outlineColor = fancy::kShadow, int outlineThickness = 4,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextShadow(
@@ -219,20 +220,20 @@ static inline image_ostream_fancy putTextShadow(
 static inline image_ostream_fancy putTextBackground(
     cv::InputOutputArray img, cv::Point origin,
     cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    int thickness = 2,
+    bool filled = true, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, std::nullopt, 0, false, bgColor, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, std::nullopt, 0, false, bgColor, filled, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextBackground(
     cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    int thickness = 2,
+    bool filled = true, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextBackground(noArray(), Point(0,0), color, bgColor, thickness, fontScale, lineSpacing, fontFace);
+    return putTextBackground(noArray(), Point(0,0), color, bgColor, filled, thickness, fontScale, lineSpacing, fontFace);
 }
 
 /* Note: if the compiler complains about ambigous overload, you can use
@@ -242,7 +243,7 @@ static inline image_ostream_fancy putTextBackground(
 #define CV2_PUTTEXT_FANCY_HPP__putTextFancyApi \
     std::optional<cv::Scalar> outlineColor OPT_ALL_DEF, int outlineThickness = 4, \
     bool shadow = false, \
-    std::optional<cv::Scalar> bgColor = std::nullopt, \
+    std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true, \
     cv::Scalar color = fancy::kWhite, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
     int fontFace = FONT_HERSHEY_SIMPLEX, \
@@ -326,7 +327,7 @@ static inline image_ostream_fancy putTextFancy_RelativeTo(
 // Put text on the left or right side of the rectangle
 static inline image_ostream_fancy putTextFancy_RelativeTo(
     InputOutputArray img, const Point& rect_tl, const Size& rect_size,
-    image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
+    image_ostream::TextAlign horz /* = image_ostream::TextAlign::Right */,
     image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
     bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
 {
@@ -344,7 +345,7 @@ static inline image_ostream_fancy putTextFancy_RelativeTo(
 
 static inline image_ostream_fancy putTextFancy_RelativeTo(
     InputOutputArray img, const cv::Rect& rect,
-    image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
+    image_ostream::TextAlign horz /* = image_ostream::TextAlign::Right */,
     image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
     bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
 {
@@ -416,7 +417,7 @@ void image_ostream_fancy::nextLine()
                     _offset - topBaselinePad * rev_mag),
                 origin(with_scale(_pad) + alignment_shift + line_width,
                     _offset + with_space(line_height) * rev_mag),
-                _bgColor.value(), cv::FILLED);
+                _bgColor.value(), _bgFilled ? cv::FILLED : cv::LINE_AA);
         }
 
         // Outline text

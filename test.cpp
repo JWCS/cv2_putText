@@ -258,7 +258,7 @@ TEST(Normal_Refs, "puttext_normal_refs") {
 TEST(Fancy_Normal, "puttextfancy_normal") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
-  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt,
+  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt, false,
       fancy::kBlack, 1, 1.0, 1.2)
     << BASIC_BLURB;
   cv::imwrite(sFancy_Normal_FullFile, img);
@@ -267,14 +267,14 @@ TEST(Fancy_Normal, "puttextfancy_normal") {
 TEST(Fancy_Stack, "puttextfancy_stack") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
-  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt,
+  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt, false,
       fancy::kBlack, 1, 0.5, 1.2)
     << BASIC_BLURB
   // Note, this is non-fancy putText
   << cv::putText(fancy::kRed, 4, 2, 1.0, cv::FONT_HERSHEY_COMPLEX)
     << "\tIS IT red, 4, scale 2,\n\t\tcomplex?" // << std::endl
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
-  << cv::putTextFancy(std::nullopt, 0, false, std::nullopt, fancy::kShadow, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
+  << cv::putTextFancy(std::nullopt, 0, false, std::nullopt, false, fancy::kShadow, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
     << "Lastly, it's shadow, 1, scale 0.5,\n\t2x line space, duplex" << std::endl
     << BASIC_BLURB;
   cv::imwrite(sFancy_Stack_FullFile, img);
@@ -356,14 +356,14 @@ TEST(Fancy_Background, "puttextfancy_background") {
   << cv::putTextBackground(fancy::kBlue)
     << "Blue text  'g j p q y'" << std::endl
     << "'g j p q y''ABCDEFGHIJ'" << std::endl
-  << cv::putTextBackground(fancy::kRed, fancy::kBlack, 2, 0.7)
+  << cv::putTextBackground(fancy::kRed, fancy::kBlack, true, 2, 0.7)
     << "Red text, black bg, 2px border, 0.7 size, 'g j p q y'" << std::endl
     << "With no line overlap compression 'g j p q y''ABCDEFGHIJKLM'" << std::endl
-  << cv::putTextBackground(fancy::kBlack, fancy::kGreen, 3, 2.0)
+  << cv::putTextBackground(fancy::kBlack, fancy::kGreen, true, 3, 2.0)
     << "Black text, green bg, 3px border, 2.0 size" << std::endl
     << "With no line spacing" << std::endl
-  << cv::putTextBackground(fancy::kRed, fancy::kBlack, 2, 0.7)
-    << "Tiny Again" << std::endl
+  << cv::putTextBackground(fancy::kRed, fancy::kBlack, false, 2, 0.7)
+    << "Tiny Again, With Border" << std::endl
   << cv::putTextBackground()
     << "Default again" << std::endl
   ;
@@ -373,7 +373,7 @@ TEST(Fancy_Background, "puttextfancy_background") {
 TEST(Fancy_Demo, "puttextfancy_demo") {
   cv::Mat img(1600, 1600, CV_8UC3, fancy::kGrey);
   const auto fancy_fmt = cv::putTextFancy(
-      fancy::kBlue, 4, true, fancy::kGreen, // blue shadow, green bg
+      fancy::kBlue, 4, true, fancy::kGreen, true, // blue shadow, green bg
       fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, 8, false)
     << "You can save fancy formats as\n\t\tvariables for re-use!" << std::endl;
 
@@ -383,7 +383,7 @@ TEST(Fancy_Demo, "puttextfancy_demo") {
     << "This text has an outline!" << std::endl
   << cv::putTextShadow(fancy::kBlue, 2, 0.8)
     << "This text has a shadow!" << std::endl
-  << cv::putTextBackground(fancy::kRed, fancy::kBlue, 4, 1.3, 1.0)
+  << cv::putTextBackground(fancy::kRed, fancy::kBlue, true, 4, 1.3, 1.0)
     << "This text has a background!" << std::endl
   << fancy_fmt
     << "You can combine them all!" << std::endl
@@ -395,7 +395,7 @@ TEST(Fancy_Demo, "puttextfancy_demo") {
     << "\tChanging formats has implicit newline;\n\t\tonly add more if you want the space!"
   << cv::putTextBackground()
     << "\tAnd the newline spacing is the\n\t\tsame size as the format/text!"
-  << cv::putTextBackground(fancy::kBlue, fancy::kRed, 2, 0.7)
+  << cv::putTextBackground(fancy::kBlue, fancy::kRed, true, 2, 0.7)
     << "To have no gaps in backgrounds," << std::endl
     << "                               " << std::endl
     << "need to fill with whitespace!  " << std::endl
