@@ -72,14 +72,15 @@ TEST(NormalPositioning, "puttext_normal_positioning") {
 TEST(NormalAlignment, "puttext_normal_alignment") {
   int width = 800;
   cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
+  auto ioa = cv::InputOutputArray(img);
 
-  cv::putText(img, cv::Point(width/2, 140)) << "Align Left\n";
+  {cv::putText(img, cv::Point(width/2, 140)) << "Align Left\n"; }
 
   {auto fmt = cv::putText(img, cv::Point(width/2, 240));
     fmt._align_opt = cv::image_ostream::TextAlign::Center;
     fmt << "Align Center\n"; }
 
-  {auto fmt = cv::putText(img, cv::Point(width/2, 340));
+  {auto&& fmt = cv::putText(img, cv::Point(width/2, 340));
     fmt._align_opt = cv::image_ostream::TextAlign::Right;
     fmt << "Align Right\n"; }
   cv::imwrite(sNormalAlignment_FullFile, img);
@@ -89,20 +90,23 @@ TEST(NormalOnelineCenter, "puttext_normal_onelinecenter"){
   int width = 800;
   cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
 
-  for(int i = 1; i < 3; ++i){
-      {auto fmt = cv::putText(img, cv::Point(width*i/3, 140));
-        fmt._bottomLeftOrigin_opt = (bool)(i - 1);
-        fmt << "Align Left"; }
+  for(int i = 1; i < 2; ++i){ // FIXME: change 2->3 for real test; 1->2 for debug
+    {auto&&
+      fmt1 = cv::putText(img, cv::Point(width*i/3, 140));
+      fmt1._bottomLeftOrigin_opt = (bool)(i - 1);
+      fmt1 << "Align Left"; }
 
-      {auto fmt = cv::putText(img, cv::Point(width*i/3, 240));
-        fmt._bottomLeftOrigin_opt = (bool)(i - 1);
-        fmt._align_opt = cv::image_ostream::TextAlign::Center;
-        fmt << "Align Center"; }
+      auto
+      fmt2 = cv::image_ostream(img, cv::Point(width*i/3, 240));
+      fmt2._bottomLeftOrigin_opt = (bool)(i - 1);
+      fmt2._align_opt = cv::image_ostream::TextAlign::Center;
+      fmt2 << "Align Center";
 
-      {auto fmt = cv::putText(img, cv::Point(width*i/3, 340));
-        fmt._bottomLeftOrigin_opt = (bool)(i - 1);
-        fmt._align_opt = cv::image_ostream::TextAlign::Right;
-        fmt << "Align Right"; }
+      auto&&
+      fmt3 = cv::putText(img, cv::Point(width*i/3, 340));
+      fmt3._bottomLeftOrigin_opt = (bool)(i - 1);
+      fmt3._align_opt = cv::image_ostream::TextAlign::Right;
+      fmt3 << "Align Right";
   }
 
   cv::imwrite(sNormalOnelineCenter_FullFile, img);

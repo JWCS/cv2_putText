@@ -33,3 +33,7 @@ build/test_tors: test_tors.cpp
 run_tors: build/test_tors
 	cd ./build && ./test_tors
 
+build/mre: mre.cpp
+	mkdir -p build && \
+	$(CC) $(CFLAGS) mre.cpp -o $@ $(LDFLAGS) $(LIBS)
+

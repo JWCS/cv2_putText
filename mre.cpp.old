@@ -1,0 +1,113 @@
+// mre.cpp
+
+#include "opencv2/opencv.hpp"
+#include <iostream>
+#include <optional>
+
+struct MyClass1 {
+
+  MyClass1(cv::InputOutputArray img, cv::Point origin) : _img(img), _origin(origin) {}
+  ~MyClass1() {
+    std::cout << "Destroying MyClass1: img ok? " << !_img.empty() << std::endl;
+    if(!_img.empty()) {
+      cv::circle(_img, _origin, _radius, cv::Scalar(0, 0, 255), _thickness);
+    }
+  }
+
+  cv::InputOutputArray _img;
+  const cv::Point _origin;
+  int _thickness = 3;
+  int _radius = 10;
+};
+
+static inline MyClass1 myClass1(cv::InputOutputArray img, cv::Point origin) {
+  return MyClass1(img, origin);
+}
+
+struct MyClass2 {
+
+  MyClass2(cv::InputOutputArray img, cv::Point origin) : _img(img), _origin(origin) {}
+  ~MyClass2() {
+    std::cout << "Destroying MyClass2: img ok? " << !_img.empty() << std::endl;
+    if(!_img.empty()) {
+      const int _thickness = _thickness_opt.value_or(3);
+      const int _radius = _radius_opt.value_or(10);
+      cv::circle(_img, _origin, _radius, cv::Scalar(0, 0, 255), _thickness);
+    }
+  }
+
+  cv::InputOutputArray _img;
+  const cv::Point _origin;
+  std::optional<int> _thickness_opt = std::nullopt;
+  std::optional<int> _radius_opt = std::nullopt;
+};
+
+static inline MyClass2 myClass2(cv::InputOutputArray img, cv::Point origin) {
+  return MyClass2(img, origin);
+}
+
+#define PLINE() std::cout << __LINE__ << " "
+
+void Test1(){
+  cv::Mat img(300, 300, CV_8UC3, cv::Scalar(255, 255, 255));
+  cv::Point origin(150, 150);
+  PLINE(); myClass1(img, origin); // OK; but no storing as variable
+  // { auto fmt = myClass1(img, origin); fmt._radius = __LINE__; } // SegFault: unknown operation 'empty'
+  // { auto& fmt = myClass1(img, origin); fmt._radius = __LINE__; } // Not Allowed, ofc: ref to temporary
+  PLINE(); { auto&& fmt = myClass1(img, origin); fmt._radius = __LINE__; } // OK, note && within sub-block
+
+  PLINE(); { auto&& fmt = myClass1(cv::InputOutputArray(img), origin); fmt._radius = __LINE__; } // OK...
+
+  auto ioa = cv::InputOutputArray(img);
+  PLINE(); { auto fmt = myClass1(ioa, origin); fmt._radius = __LINE__; } // OK
+
+  //PLINE(); do { auto fmt = myClass1(img, origin); fmt._radius = __LINE__; } while(0); // SegFault: unknown operation 'empty'
+
+  PLINE(); do { auto&& fmt = myClass1(img, origin); fmt._radius = __LINE__; } while(0); // OK, but why?
+
+  cv::imwrite("build/mre_t1.png", img);
+}
+
+void Test2(){
+  cv::Mat img(300, 300, CV_8UC3, cv::Scalar(255, 255, 255));
+  cv::Point origin(150, 150);
+  PLINE(); myClass2(img, origin); // OK; but no storing as variable
+  // PLINE(); { auto fmt = myClass2(img, origin); fmt._radius_opt = __LINE__; } // SegFault: unknown operation 'empty'
+  // PLINE(); { auto& fmt = myClass2(img, origin); fmt._radius_opt = __LINE__; } // Not Allowed, ofc: ref to temporary
+  PLINE(); { auto&& fmt = myClass2(img, origin); fmt._radius_opt = __LINE__; } // NOT OK!!! But it was!
+
+  PLINE(); { auto&& fmt = myClass2(cv::InputOutputArray(img), origin); fmt._radius_opt = __LINE__; } // NOT OK!!! But it was!
+
+  auto ioa = cv::InputOutputArray(img);
+  PLINE(); { auto fmt = myClass2(ioa, origin); fmt._radius_opt = __LINE__; } // OK, still
+
+  //PLINE(); do { auto fmt = myClass2(img, origin); fmt._radius_opt = __LINE__; } while(0); // SegFault: unknown operation 'empty'
+
+  PLINE(); do { auto&& fmt = myClass2(img, origin); fmt._radius_opt = __LINE__; } while(0); // NOT OK!!! But it was!
+
+  cv::imwrite("build/mre_t2.png", img);
+}
+
+int main(){
+  std::cout << "GNU C++ version: " << __GNUG__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << std::endl;
+  std::cout << "OpenCV version: " << CV_VERSION << std::endl;
+  Test1();
+  Test2();
+
+  return 0;
+}
+
+/* Current Output:
+GNU C++ version: 9.4.0
+OpenCV version: 4.5.4
+54 Destroying MyClass1: img ok? 1
+57 Destroying MyClass1: img ok? 1
+59 Destroying MyClass1: img ok? 1
+62 Destroying MyClass1: img ok? 1
+66 Destroying MyClass1: img ok? 1
+74 Destroying MyClass2: img ok? 1
+77 Destroying MyClass2: img ok? 0
+79 Destroying MyClass2: img ok? 0
+82 Destroying MyClass2: img ok? 1
+86 Destroying MyClass2: img ok? 0
+*/

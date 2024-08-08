@@ -269,6 +269,8 @@ cv::image_ostream::Debug cv::image_ostream::_Debug;
 
 image_ostream::~image_ostream()
 {
+    std::cout << "Destroying image_ostream: img ok(" << !_img.empty() << ")" << std::endl;
+    std::cout << '"' << _str.str() << '"' << std::endl;
     if(!_img.empty()){
         nextLine();
     }
