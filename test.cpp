@@ -60,11 +60,9 @@ TEST(NormalPositioning, "puttext_normal_positioning") {
       1.0, fancy::kBlack, 2, cv::LINE_AA, true);
 
   const cv::Point origin3(40,240);
-  cv::drawMarker(img, origin3, fancy::kRed);
   cv::putText(img, origin3) << "Hg: cv2_putText (+) is origin";
 
   const cv::Point origin4(40,340);
-  cv::drawMarker(img, origin4, fancy::kRed);
   cv::putText(img, origin4,
       cv::Scalar::all(0), 2, 1.0, 1.1, cv::FONT_HERSHEY_SIMPLEX, cv::LINE_AA,
       true) << "Hg: cv2_putText, bottomLeftOrigin=true";
@@ -74,28 +72,46 @@ TEST(NormalPositioning, "puttext_normal_positioning") {
 TEST(NormalAlignment, "puttext_normal_alignment") {
   int width = 800;
   cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
-  const cv::Point origin1(width/2, 40);
-  cv::drawMarker(img, origin1, fancy::kRed);
-  cv::putText(img, origin1) << "Align Left";
 
-  const cv::Point origin2(width/2, 140);
-  cv::drawMarker(img, origin2, fancy::kRed);
-  {auto fmt = cv::putText(img, origin2);
+  cv::putText(img, cv::Point(width/2, 140)) << "Align Left\n";
+
+  {auto fmt = cv::putText(img, cv::Point(width/2, 240));
     fmt._align_opt = cv::image_ostream::TextAlign::Center;
-    fmt << "Align Center"; }
+    fmt << "Align Center\n"; }
 
-  const cv::Point origin3(width/2, 240);
-  cv::drawMarker(img, origin3, fancy::kRed);
-  {auto fmt = cv::putText(img, origin3);
+  {auto fmt = cv::putText(img, cv::Point(width/2, 340));
     fmt._align_opt = cv::image_ostream::TextAlign::Right;
-    fmt << "Align Right"; }
+    fmt << "Align Right\n"; }
   cv::imwrite(sNormalAlignment_FullFile, img);
+}
+
+TEST(NormalOnelineCenter, "puttext_normal_onelinecenter"){
+  int width = 800;
+  cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
+
+  for(int i = 1; i < 3; ++i){
+      {auto fmt = cv::putText(img, cv::Point(width*i/3, 140));
+        fmt._bottomLeftOrigin_opt = (bool)(i - 1);
+        fmt << "Align Left"; }
+
+      {auto fmt = cv::putText(img, cv::Point(width*i/3, 240));
+        fmt._bottomLeftOrigin_opt = (bool)(i - 1);
+        fmt._align_opt = cv::image_ostream::TextAlign::Center;
+        fmt << "Align Center"; }
+
+      {auto fmt = cv::putText(img, cv::Point(width*i/3, 340));
+        fmt._bottomLeftOrigin_opt = (bool)(i - 1);
+        fmt._align_opt = cv::image_ostream::TextAlign::Right;
+        fmt << "Align Right"; }
+  }
+
+  cv::imwrite(sNormalOnelineCenter_FullFile, img);
 }
 
 TEST(Normal_RelativeTo, "puttext_normal_relativeto"){
   cv::Mat img(800, 800, CV_8UC3, fancy::kWhite);
   const cv::Rect rect(150, 150, 500, 500);
-  cv::rectangle(img, rect, fancy::kRed, 2);
+  cv::rectangle(img, rect, fancy::kGreen, 2);
   // 9 pos inside, 12 pos outside
   // Top/bottom, outside and in
   cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, false) << "TL";
@@ -508,6 +524,7 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(NormalReuse) \
   X(NormalPositioning) \
   X(NormalAlignment) \
+  X(NormalOnelineCenter) \
   X(Normal_RelativeTo) \
   X(Normal_RelativeToMultiline) \
   X(Normal_StackFmts) \
@@ -529,6 +546,7 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
 
 int main(int argc, char** argv) {
   //cv::setBreakOnError(true);
+  cv::image_ostream::_Debug.draw_origin = true;
   try {
     if(argc > 1) {
       for(int i = 1; i < argc; i++) {

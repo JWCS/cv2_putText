@@ -96,7 +96,7 @@ namespace cv {
   X(double, fontScale, 1.0) \
   X(double, lineSpacing, 1.1) \
   X(int, fontFace, cv::FONT_HERSHEY_SIMPLEX) \
-  X(int, lineType, 8)
+  X(int, lineType, cv::LINE_AA)
 
 #define CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X \
   X(bool, bottomLeftOrigin, false) \
@@ -159,6 +159,12 @@ struct CV_EXPORTS image_ostream
         return *this;
     }
 
+    struct Debug
+    {
+        bool draw_origin = false;
+    };
+    static Debug _Debug;
+
 protected:
     // Does not handle newlines!
     cv::Size getLineSize(const std::string& text, int& baseline) const
@@ -196,7 +202,7 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    int lineType=cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
     std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
     std::optional<bool> reverse = std::nullopt /*false*/ )
 {
@@ -212,7 +218,7 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    int lineType=cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
     std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
     std::optional<bool> reverse = std::nullopt /*false*/ )
 {
@@ -259,6 +265,8 @@ static inline image_ostream putText_RelativeTo(
 
 #ifdef CV2_PUTTEXT_HPP_IMPL
 
+cv::image_ostream::Debug cv::image_ostream::_Debug;
+
 image_ostream::~image_ostream()
 {
     if(!_img.empty()){
@@ -273,6 +281,8 @@ void image_ostream::nextLine()
 #undef X
     if(_str.str().empty()){ return; }
     if(_reverse){ reverse(); }
+    const bool oneline = _str.str().find('\n') == std::string::npos;
+    if(_Debug.draw_origin) cv::drawMarker(_img, _origin, cv::Scalar(0, 0, 255));
 
     std::string line;
     int max_width = 0;
@@ -290,7 +300,8 @@ void image_ostream::nextLine()
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseLine;
         // Note: we shift textSize.height to make the origin the upper-left corner
-        const int offset_correction = _bottomLeftOrigin ? 0 : textSize.height;
+        const int offset_correction = (_bottomLeftOrigin ? 0 : textSize.height)
+            + (_bottomLeftOrigin ? 1 : -1) * (oneline && _align == TextAlign::Center ? textSize.height / 2 : 0);
         const int offset_height = (int)std::rint(line_height * _lineSpacing) * (_reverse ? -1 : 1);
         const int alignment_shift =
             _align == TextAlign::Center ? -line_width / 2 :

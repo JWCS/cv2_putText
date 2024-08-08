@@ -64,7 +64,7 @@ cv::putText(img, cv::Point(40,40))
 
 const auto fancy_fmt = cv::putTextFancy(
     fancy::kBlue, 4, true, fancy::kGreen, // blue shadow, green bg
-    fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, 8, false)
+    fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, cv::LINE_AA, false)
   << "You can save fancy formats as\n\t\tvariables for re-use!" << std::endl;
 
 cv::putTextFancy(img, cv::Point(40, 40))
@@ -120,14 +120,14 @@ cv::putText(
     cv::Scalar color = /* black */, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, bool bottomLeftOrigin=false);
+    int lineType = cv::LINE_AA, bool bottomLeftOrigin=false);
 
 /* Inline version */
 cv::putText(
     cv::Scalar color = /* black */, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=8, bool bottomLeftOrigin=false);
+    int lineType = cv::LINE_AA, bool bottomLeftOrigin=false);
 
 /* The returned object has the relevent methods: */
 this& setTextSizeResult (            cv::Size * pSize  );
@@ -201,7 +201,7 @@ cv::putTextFancy(
     std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true,
     cv::Scalar color = fancy::kWhite, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX, int lineType = 8,
+    int fontFace = cv::FONT_HERSHEY_SIMPLEX, int lineType = cv::LINE_AA,
     bool bottomLeftOrigin = nullopt(false),
     TextAlign align = nullopt(Left), bool reverse = nullopt(false));
 

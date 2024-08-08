@@ -247,7 +247,7 @@ static inline image_ostream_fancy putTextBackground(
     cv::Scalar color = fancy::kWhite, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
     int fontFace = FONT_HERSHEY_SIMPLEX, \
-    int lineType = 8, std::optional<bool> bottomLeftOrigin = std::nullopt, \
+    int lineType = cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt, \
     std::optional<image_ostream::TextAlign> align = std::nullopt, \
     std::optional<bool> reverse = std::nullopt
 #define OPT_ALL_DEF
@@ -369,6 +369,8 @@ void image_ostream_fancy::nextLine()
 #undef X
     if(_str.str().empty()){ return; }
     if(_reverse){ reverse(); }
+    const bool oneline = _str.str().find('\n') == std::string::npos;
+    if(_Debug.draw_origin) cv::drawMarker(_img, _origin, cv::Scalar(0, 0, 255));
 
     const int shadow_offset = _shadow ? _outlineThickness : 0;
     const auto with_space = [c = _lineSpacing](int x) -> int { return (int)std::rint(c * x); };
@@ -390,7 +392,8 @@ void image_ostream_fancy::nextLine()
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseline;
         // Note: we shift textSize.height to make the origin the upper-left corner
-        const int offset_correction = _bottomLeftOrigin ? 0 : textSize.height;
+        const int offset_correction = (_bottomLeftOrigin ? 0 : textSize.height)
+            + (_bottomLeftOrigin ? 1 : -1) * (oneline && _align == TextAlign::Center ? textSize.height / 2 : 0);
         const int offset_height = (int)std::rint(line_height * _lineSpacing) * (_reverse ? -1 : 1);
         const int alignment_shift =
             _align == TextAlign::Center ? -line_width / 2 :
@@ -417,7 +420,7 @@ void image_ostream_fancy::nextLine()
                     _offset - topBaselinePad * rev_mag),
                 origin(with_scale(_pad) + alignment_shift + line_width,
                     _offset + with_space(line_height) * rev_mag),
-                _bgColor.value(), _bgFilled ? cv::FILLED : cv::LINE_AA);
+                _bgColor.value(), _bgFilled ? cv::FILLED : 2, cv::LINE_AA);
         }
 
         // Outline text
