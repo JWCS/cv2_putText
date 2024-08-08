@@ -105,7 +105,8 @@ namespace cv {
   X(int, outlineThickness, 4) \
   X(bool, shadow, false) \
   X(std::optional<Scalar>, bgColor, std::nullopt) \
-  X(bool, bgFilled, true)
+  X(bool, bgFilled, true) \
+  X(int, bgPadding, 6)
 
 //! Creates and return image_ostream_fancy object to render text on the image like the std::cout does.
 //! An image_ostream_fancy class supports operator<< for both primitive and opencv types.
@@ -186,7 +187,7 @@ static inline image_ostream_fancy putTextOutline(
     cv::Scalar outlineColor = fancy::kBlack, int outlineThickness = 4,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, false, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, false, std::nullopt, true, 0, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextOutline(
@@ -205,7 +206,7 @@ static inline image_ostream_fancy putTextShadow(
     cv::Scalar outlineColor = fancy::kShadow, int outlineThickness = 4,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, true, 0, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextShadow(
@@ -220,20 +221,22 @@ static inline image_ostream_fancy putTextShadow(
 static inline image_ostream_fancy putTextBackground(
     cv::InputOutputArray img, cv::Point origin,
     cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    bool filled = true, int thickness = 2,
-    double fontScale = 1.0, double lineSpacing = 1.1,
+    bool filled = true,
+    int thickness = 2, double fontScale = 1.0,
+    int padding = 6, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, std::nullopt, 0, false, bgColor, filled, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, std::nullopt, 0, false, bgColor, filled, padding, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextBackground(
     cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    bool filled = true, int thickness = 2,
-    double fontScale = 1.0, double lineSpacing = 1.1,
+    bool filled = true,
+    int thickness = 2, double fontScale = 1.0,
+    int padding = 6, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextBackground(noArray(), Point(0,0), color, bgColor, filled, thickness, fontScale, lineSpacing, fontFace);
+    return putTextBackground(noArray(), Point(0,0), color, bgColor, filled, thickness, fontScale, padding, lineSpacing, fontFace);
 }
 
 /* Note: if the compiler complains about ambigous overload, you can use
@@ -243,7 +246,8 @@ static inline image_ostream_fancy putTextBackground(
 #define CV2_PUTTEXT_FANCY_HPP__putTextFancyApi \
     std::optional<cv::Scalar> outlineColor OPT_ALL_DEF, int outlineThickness = 4, \
     bool shadow = false, \
-    std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true, \
+    std::optional<cv::Scalar> bgColor = std::nullopt, \
+    bool bgFilled = true, int bgPadding = 6, \
     cv::Scalar color = fancy::kWhite, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
     int fontFace = FONT_HERSHEY_SIMPLEX, \
@@ -416,11 +420,10 @@ void image_ostream_fancy::nextLine()
             const int topBaselinePad = with_space(baseline / 2);
             // pad with the top-baseline space; added to mirror the baseline underneath
             //_offset += topBaselinePad;
-            const int _pad = 6;
             cv::rectangle(_img,
-                origin(with_scale(-_pad) + alignment_shift,
+                origin(with_scale(-_bgPadding) + alignment_shift,
                     _offset + midline_adj - topBaselinePad * rev_mag),
-                origin(with_scale(_pad) + alignment_shift + line_width,
+                origin(with_scale(_bgPadding) + alignment_shift + line_width,
                     _offset + midline_adj + with_space(line_height) * rev_mag),
                 _bgColor.value(), _bgFilled ? cv::FILLED : 2, cv::LINE_AA);
         }
