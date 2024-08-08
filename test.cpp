@@ -474,7 +474,7 @@ TEST(Fancy_RelativeTo, "puttextfancy_relativeto"){
   cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Bottom, fancy::TextAlign::Right, true).setOriginResult(&origin).setTextboxResult(&bbox) << "BR-in" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "LM" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Top, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextShadow() << "RT" << "\nMulti\nLine!"; box();
-  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Center, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextBackground() << "CM-in" << "\nMulti\nLine!"; box();
+  cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Center, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextBackground() << "CM-in"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Left, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << "LM-in" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Mid, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "RM-in" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::TextAlign::Right, fancy::VertAlign::Bottom, false, true).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextShadow() << "RB" << "\nbottomLeft\n_origin=True!"; box();

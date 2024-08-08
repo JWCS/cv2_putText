@@ -369,10 +369,12 @@ void image_ostream_fancy::nextLine()
 #undef X
     if(_str.str().empty()){ return; }
     if(_reverse){ reverse(); }
-    const bool oneline = _str.str().find('\n') == std::string::npos;
     if(_Debug.draw_origin) cv::drawMarker(_img, _origin, cv::Scalar(0, 0, 255));
 
+    const bool oneline = _str.str().find('\n') == std::string::npos;
     const int shadow_offset = _shadow ? _outlineThickness : 0;
+    const int midline_adj_k = (_bottomLeftOrigin ? 1 : -1)
+            * (oneline && _align == TextAlign::Center ? 1 : 0);
     const auto with_space = [c = _lineSpacing](int x) -> int { return (int)std::rint(c * x); };
     const auto with_scale = [c = _fontScale](int x) -> int { return (int)std::rint(c * x); };
 
@@ -392,8 +394,8 @@ void image_ostream_fancy::nextLine()
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseline;
         // Note: we shift textSize.height to make the origin the upper-left corner
-        const int offset_correction = (_bottomLeftOrigin ? 0 : textSize.height)
-            + (_bottomLeftOrigin ? 1 : -1) * (oneline && _align == TextAlign::Center ? textSize.height / 2 : 0);
+        const int offset_adj = (_bottomLeftOrigin ? 0 : textSize.height);
+        const int midline_adj = midline_adj_k * textSize.height / 2;
         const int offset_height = (int)std::rint(line_height * _lineSpacing) * (_reverse ? -1 : 1);
         const int alignment_shift =
             _align == TextAlign::Center ? -line_width / 2 :
@@ -413,13 +415,13 @@ void image_ostream_fancy::nextLine()
             const int rev_mag = _reverse ? -1 : 1; // This isn't a perf fit, but it's a start
             const int topBaselinePad = with_space(baseline / 2);
             // pad with the top-baseline space; added to mirror the baseline underneath
-            _offset += topBaselinePad;
+            //_offset += topBaselinePad;
             const int _pad = 6;
             cv::rectangle(_img,
                 origin(with_scale(-_pad) + alignment_shift,
-                    _offset - topBaselinePad * rev_mag),
+                    _offset + midline_adj - topBaselinePad * rev_mag),
                 origin(with_scale(_pad) + alignment_shift + line_width,
-                    _offset + with_space(line_height) * rev_mag),
+                    _offset + midline_adj + with_space(line_height) * rev_mag),
                 _bgColor.value(), _bgFilled ? cv::FILLED : 2, cv::LINE_AA);
         }
 
@@ -427,14 +429,14 @@ void image_ostream_fancy::nextLine()
         if(_outlineColor && _outlineThickness > 0){
             cv::putText(_img, line,
                 origin(alignment_shift + shadow_offset,
-                    _offset + offset_correction + shadow_offset),
+                    _offset + offset_adj + midline_adj + shadow_offset),
                 _fontFace, _fontScale, _outlineColor.value(), maxThickness(),
                 _lineType, false);
         }
 
         // Real text
         cv::putText(_img, line,
-            origin(alignment_shift, _offset + offset_correction),
+            origin(alignment_shift, _offset + offset_adj + midline_adj),
             _fontFace, _fontScale, _color, _thickness,
             _lineType, false);
 
@@ -465,8 +467,10 @@ void image_ostream_fancy::nextLine()
         {
             x2 += max_width;
         }
+        const int midline_adj = midline_adj_k * _offset / 2;
         *_pRect = cv::Rect(
-              cv::Point(x1, _origin.y), cv::Point(x2, _origin.y + _offset));
+              cv::Point(x1, _origin.y + midline_adj),
+              cv::Point(x2, _origin.y + midline_adj + _offset));
     }
     if(_pPoint)
     {
@@ -542,7 +546,7 @@ image_ostream_fancy::image_ostream_fancy(const image_ostream& rhs)
 
 /* TODO:
  * The two nextLine() functions are almost identical.
- * . Make a drawLine(line, baseline, line_width, line_height, origin_correction)
+ * . Make a drawLine(line, baseline, line_width, line_height, origin_adj)
  *   protected function, that nextLine calls, then rm nextLine from fancy.
  * . Tho this apparently requires either CRTP or virtuals...
  * The << operator template in class prevents definition of a << operator for

@@ -63,7 +63,7 @@ cv::putText(img, cv::Point(40,40))
 #include "cv2_putText_fancy.hpp"
 
 const auto fancy_fmt = cv::putTextFancy(
-    fancy::kBlue, 4, true, fancy::kGreen, // blue shadow, green bg
+    fancy::kBlue, 4, true, fancy::kGreen, false, // blue shadow, green bg
     fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, cv::LINE_AA, false)
   << "You can save fancy formats as\n\t\tvariables for re-use!" << std::endl;
 
@@ -73,7 +73,7 @@ cv::putTextFancy(img, cv::Point(40, 40))
   << "This text has an outline!" << std::endl
 << cv::putTextShadow(fancy::kBlue, 2, 0.8)
   << "This text has a shadow!" << std::endl
-<< cv::putTextBackground(fancy::kRed, fancy::kBlue, 4, 1.3, 1.0)
+<< cv::putTextBackground(fancy::kRed, fancy::kBlue, true, 4, 1.3)
   << "This text has a background!" << std::endl
 
 << fancy_fmt
@@ -95,7 +95,7 @@ cv::putTextFancy(img, cv::Point(40, 40))
   << "\tthese lines WILL NOT be even!" << std::endl
 ;
 
-// Note: when assigning a (chain of) format expressions to a variable,
+// Note: when assigning a (chain of) format expressions (with an img) to a variable,
 // make the variable `auto&&`. That's probably what you really want. Otherwise... :_(
 // If you become some kind of power user, mixing lots of formatter variables and
 // re-using them and handling scope weirdly, there might be an edge case; file a good MWE bug.
@@ -104,11 +104,9 @@ cv::putTextFancy(img, cv::Point(40, 40))
 // If you'd like to keep the original format, make a copy of it, feed it into another,
 // or at least mark it `const`, to warn you if you're modifying it.
 // This is recommended usage:
-const auto&& my_fmt = cv::putText(kRed, 4, 1.3, 0.9);
+const auto my_fmt = cv::putText(kRed, 4, 1.3, 0.9);
 cv::putText(img, origin) << my_fmt << "Hello, World!" << std::endl;
 // ^^^^^^^^ This temporary formatter is the one being modified, and writing on destruction
-
-
 ```
 Note, this is implemented as a single file header, so in one and only one .cpp file, the IMPL flags must be defined. See the Installation section for more information.
 
@@ -248,6 +246,7 @@ void myDrawFn(){
 } // Uh-oh, the text is only drawn after the image is shown!
 ```
 In this trivial example, it could be solved by wrapping the fmt in a block `{ ... }`, calling `cv::imshow` after the function or block, or by not storing the `cv::putText` call as a variable.
+Note: you also may need to have the type be an r-value reference: `auto&& fmt = ...;`.
 
 ### Help! There's weird '?' characters in my text!
 That's the underlying, original `cv::putText` function, which sometimes doesn't handle some things. Try transforming the text first, if there's an encoding it likes better.
