@@ -281,8 +281,11 @@ void image_ostream::nextLine()
 #undef X
     if(_str.str().empty()){ return; }
     if(_reverse){ reverse(); }
-    const bool oneline = _str.str().find('\n') == std::string::npos;
     if(_Debug.draw_origin) cv::drawMarker(_img, _origin, cv::Scalar(0, 0, 255));
+
+    const bool oneline = _str.str().find('\n') == std::string::npos;
+    const int midline_adj_k = (_bottomLeftOrigin ? 1 : -1)
+            * (oneline && _align == TextAlign::Center ? 1 : 0);
 
     std::string line;
     int max_width = 0;
@@ -300,8 +303,8 @@ void image_ostream::nextLine()
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseLine;
         // Note: we shift textSize.height to make the origin the upper-left corner
-        const int offset_correction = (_bottomLeftOrigin ? 0 : textSize.height)
-            + (_bottomLeftOrigin ? 1 : -1) * (oneline && _align == TextAlign::Center ? textSize.height / 2 : 0);
+        const int offset_adj = (_bottomLeftOrigin ? 0 : textSize.height);
+        const int midline_adj = midline_adj_k * textSize.height / 2;
         const int offset_height = (int)std::rint(line_height * _lineSpacing) * (_reverse ? -1 : 1);
         const int alignment_shift =
             _align == TextAlign::Center ? -line_width / 2 :
@@ -317,7 +320,7 @@ void image_ostream::nextLine()
         }
 
         cv::putText(_img, line,
-            origin(alignment_shift, _offset + offset_correction),
+            origin(alignment_shift, _offset + offset_adj + midline_adj),
             _fontFace, _fontScale, _color, _thickness, _lineType, false);
 
         _offset += offset_height;
@@ -347,8 +350,10 @@ void image_ostream::nextLine()
         {
             x2 += max_width;
         }
+        const int midline_adj = midline_adj_k * _offset / 2;
         *_pRect = cv::Rect(
-              cv::Point(x1, _origin.y), cv::Point(x2, _origin.y + _offset));
+              cv::Point(x1, _origin.y + midline_adj),
+              cv::Point(x2, _origin.y + midline_adj + _offset));
     }
     if(_pPoint)
     {
