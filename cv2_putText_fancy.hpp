@@ -101,10 +101,10 @@ namespace fancy {
 namespace cv {
 
 #define CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X \
-  X(std::optional<Scalar>, outlineColor, std::nullopt) \
+  X(Optional<Scalar>, outlineColor, std::nullopt) \
   X(int, outlineThickness, 4) \
   X(bool, shadow, false) \
-  X(std::optional<Scalar>, bgColor, std::nullopt) \
+  X(Optional<Scalar>, bgColor, std::nullopt) \
   X(bool, bgFilled, true)
 
 //! Creates and return image_ostream_fancy object to render text on the image like the std::cout does.
@@ -118,7 +118,7 @@ public:
         CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) std::optional<type> name = std::nullopt,
+#define X(type, name, default_val) Optional<type> name = std::nullopt,
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
         void*_=0);
@@ -161,7 +161,7 @@ public:
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
     CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) inline image_ostream_fancy& name(std::optional<type> const x){ _##name##_opt = x; return *this; }
+#define X(type, name, default_val) inline image_ostream_fancy& name(Optional<type> const x){ _##name##_opt = x; return *this; }
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
 
@@ -249,15 +249,15 @@ static inline image_ostream_fancy putTextBackground(
  */
 
 #define CV2_PUTTEXT_FANCY_HPP__putTextFancyApi \
-    std::optional<cv::Scalar> outlineColor OPT_ALL_DEF, int outlineThickness = 4, \
+    image_ostream::Optional<cv::Scalar> outlineColor OPT_ALL_DEF, int outlineThickness = 4, \
     bool shadow = false, \
-    std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true, \
+    image_ostream::Optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true, \
     cv::Scalar color = fancy::kWhite, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
-    int fontFace = FONT_HERSHEY_SIMPLEX, \
-    int lineType = cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt, \
-    std::optional<image_ostream::TextAlign> align = std::nullopt, \
-    std::optional<bool> reverse = std::nullopt
+    int fontFace = FONT_HERSHEY_SIMPLEX, int lineType = cv::LINE_AA, \
+    image_ostream::Optional<bool> bottomLeftOrigin = std::nullopt, \
+    image_ostream::Optional<image_ostream::TextAlign> align = std::nullopt, \
+    image_ostream::Optional<bool> reverse = std::nullopt
 #define OPT_ALL_DEF
 
 /* v1.2.1: Conflicting ambiguous overload with image_ostream::putText()
@@ -516,7 +516,7 @@ image_ostream_fancy::image_ostream_fancy(
     CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) std::optional<type> name,
+#define X(type, name, default_val) Optional<type> name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     void*_)

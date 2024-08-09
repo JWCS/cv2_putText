@@ -117,12 +117,54 @@ struct CV_EXPORTS image_ostream
     enum class TextAlign : unsigned { Left, Right, Center };
     enum class VertAlign : unsigned { Top, Bottom, Mid };
 
+    // HACK: std::optional currently breaks the runtime lifetime of the object
+    // and makes the internal InputOutputArray invalid... somehow!
+    // Pls rm this, and replace with std::optional when fixed... pls
+    template <typename T>
+    struct Optional {
+        union {
+            std::nullopt_t const _nullopt = std::nullopt;
+            T _value;
+        };
+        bool _has;
+
+        constexpr Optional() noexcept : _has(false) {}
+        constexpr Optional(std::nullopt_t) noexcept : _has(false) {}
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+        constexpr Optional(const Optional<T>& other)
+            { if(other._has) _value = other._value; else if(_has) _value.~T(); _has = other._has; }
+        #pragma GCC diagnostic pop
+        //constexpr Optional(Optional<T>&&) = default;
+        constexpr Optional(T v) : _value(v), _has(true) {}
+        constexpr Optional(std::optional<T> v_opt) : _has(v_opt) { if(_has) _value = v_opt.value(); }
+        constexpr Optional<T>& operator=( std::nullopt_t ) noexcept
+            { if(_has) _value.~T(); _has = false; return *this; }
+        constexpr Optional<T>& operator=( T&& value )
+            { _has = true; _value = value; return *this; }
+        constexpr Optional<T>& operator=( const Optional<T>& other )
+            { if(other._has) *this = other._value; else *this = std::nullopt; return *this; }
+        constexpr Optional<T>& operator=( Optional<T>&& other ) noexcept
+            { if(other._has) *this = other._value; else *this = std::nullopt; return *this; }
+
+        constexpr explicit operator bool() const noexcept { return _has; }
+        constexpr bool has_value() const noexcept { return _has; }
+        constexpr T& value() & { return _value; }
+        constexpr const T& value() const & { return _value; }
+        //constexpr T&& value() && { return _value; }
+        //constexpr const T&& value() const && { return _value; }
+        constexpr const T& operator*() const& noexcept { return _value; }
+        constexpr T& operator*() & noexcept { return _value; }
+        //constexpr const T&& operator*() const&& noexcept { return _value; }
+        //constexpr T&& operator*() && noexcept { return _value; }
+    };
+
     image_ostream(
         InputOutputArray img, Point origin,
 #define X(type, name, default_val) type name = default_val,
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) std::optional<type> name = std::nullopt,
+#define X(type, name, default_val) Optional<type> name = std::nullopt,
         CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
         void*_=0);
@@ -168,7 +210,7 @@ struct CV_EXPORTS image_ostream
 #define X(type, name, default_val) inline image_ostream& name(type const x){ _##name = x; return *this; }
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) inline image_ostream& name(std::optional<type> const x){ _##name##_opt = x; return *this; }
+#define X(type, name, default_val) inline image_ostream& name(Optional<type> const x){ _##name##_opt = x; return *this; }
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
 
@@ -196,7 +238,7 @@ public:
 #define X(type, name, default_val) type _##name;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) std::optional<type> _##name##_opt;
+#define X(type, name, default_val) Optional<type> _##name##_opt;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     std::vector<cv::Size>* _pLineSizes;
@@ -215,9 +257,10 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
-    std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
-    std::optional<bool> reverse = std::nullopt /*false*/ )
+    int lineType=cv::LINE_AA,
+    image_ostream::Optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    image_ostream::Optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
+    image_ostream::Optional<bool> reverse = std::nullopt /*false*/ )
 {
     return image_ostream(img, origin,
 #define X(type, name, default_val) name,
@@ -231,9 +274,10 @@ static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
-    std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
-    std::optional<bool> reverse = std::nullopt /*false*/ )
+    int lineType=cv::LINE_AA,
+    image_ostream::Optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    image_ostream::Optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
+    image_ostream::Optional<bool> reverse = std::nullopt /*false*/ )
 {
     return image_ostream(noArray(), Point(0,0),
 #define X(type, name, default_val) name,
@@ -396,7 +440,7 @@ image_ostream::image_ostream(
 #define X(type, name, default_val) type name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
 #undef X
-#define X(type, name, default_val) std::optional<type> name,
+#define X(type, name, default_val) Optional<type> name,
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     void*_)
