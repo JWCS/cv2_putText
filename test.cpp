@@ -269,21 +269,19 @@ TEST(Normal_Sizes, "puttext_normal_sizes") {
   cv::imwrite(sNormal_Sizes_FullFile, img);
 }
 
-/*
 // FIXME: this is broken, both with and without the && ref on fmt_base
 TEST(Normal_Refs, "puttext_normal_refs") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kGrey);
   {
     // Is this first && truly useless? Or if with a move ctor, prevents a copy?
     auto fmt_base = cv::putText(img, cv::Point(40, 40));
-    auto&& fmt_res = fmt_base << BASIC_BLURB;
-    fmt_base << cv::putText(cv::Scalar(0, 255, 0), 2, 2.0)
+    auto&& fmt_res = fmt_base << "Lots of text\nFrom a reference to base\n!!!\n";
+    fmt_base << cv::putText(fancy::kGreen, 2, 2.0)
       << "\nGreen!\n(Called from reference)\n";
     fmt_res << "\nNo Overwrite! (From base)\n";
   }
   cv::imwrite(sNormal_Refs_FullFile, img);
 }
-*/
 
 TEST(Fancy_Normal, "puttextfancy_normal") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
@@ -561,6 +559,7 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Normal_StackFmts) \
   X(Normal_Demo) \
   X(Normal_Sizes) \
+  X(Normal_Refs) \
   X(Fancy_Normal) \
   X(Fancy_SetChains) \
   X(Fancy_Stack) \
@@ -570,7 +569,6 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Fancy_Demo) \
   X(Fancy_Sizes) \
   X(Fancy_RelativeTo)
-  //X(Normal_Refs) // This has img/InputOutputArray mem issues
   //X(Fancy_IntoReg1) // These have typing/template issues
   //X(Fancy_IntoReg2)
 

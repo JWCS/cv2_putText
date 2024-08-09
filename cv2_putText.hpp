@@ -190,7 +190,8 @@ protected:
     static void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
 protected:
-    InputOutputArray _img;
+    // Note: typedef const _InputOutputArray& cv::InputOutputArray
+    _InputOutputArray _img; // !!! Can't use InputOutputArray bc doesn't own the temporary!
 public:
     const Point _origin;
 #define X(type, name, default_val) type _##name;
