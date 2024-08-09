@@ -103,6 +103,12 @@ namespace cv {
   X(image_ostream::TextAlign, align, image_ostream::TextAlign::Left) \
   X(bool, reverse, false) \
 
+#define CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_RESULT_X \
+  X(cv::Size, TextSize) \
+  X(std::vector<cv::Size>, LineSizes) \
+  X(cv::Rect, Textbox) \
+  X(cv::Point, Origin)
+
 //! Creates and return image_ostream object to render text on the image like the std::cout does.
 //! An image_ostream class supports operator<< for both primitive and opencv types.
 struct CV_EXPORTS image_ostream
@@ -128,13 +134,6 @@ struct CV_EXPORTS image_ostream
     //! Prints everything to the cv::Mat in the destructor
     ~image_ostream();
 
-    //! Size results (only after drawing/destruction!)
-    // Note: can't use movable references, and std::reference_wrapper too buggy
-    image_ostream& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
-    image_ostream& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
-    image_ostream& setTextboxResult(cv::Rect* const pRect){ _pRect = pRect; return *this; }
-    image_ostream& setOriginResult(cv::Point* const pPoint){ _pPoint = pPoint; return *this; }
-
     //! Self operator<< to chain multiple settings
     image_ostream& operator<<(const image_ostream& new_settings);
 
@@ -159,6 +158,20 @@ struct CV_EXPORTS image_ostream
         return *this;
     }
 
+    //! Size results (only after drawing/destruction!)
+    // Note: can't use movable references, and std::reference_wrapper too buggy
+#define X(type, name) inline image_ostream& set##name##Result(type* const p){ _p##name = p; return *this; }
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_RESULT_X
+#undef X
+
+    //! Chainable setters
+#define X(type, name, default_val) inline image_ostream& name(type const x){ _##name = x; return *this; }
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) inline image_ostream& name(std::optional<type> const x){ _##name##_opt = x; return *this; }
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
+
     struct Debug
     {
         bool draw_origin = false;
@@ -167,13 +180,13 @@ struct CV_EXPORTS image_ostream
 
 protected:
     // Does not handle newlines!
-    cv::Size getLineSize(const std::string& text, int& baseline) const
+    cv::Size _getLineSize(const std::string& text, int& baseline) const
     {
         return cv::getTextSize(text, _fontFace, _fontScale, _thickness, &baseline);
     }
     cv::Point origin(int x, int y) const { return _origin + cv::Point(x, y); }
-    void nextLine();
-    void reverse();
+    void _nextLine();
+    void _reverseLines();
     static void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
 protected:
@@ -188,8 +201,8 @@ public:
 #undef X
     std::vector<cv::Size>* _pLineSizes;
     cv::Size*              _pTextSize;
-    cv::Rect*              _pRect;
-    cv::Point*             _pPoint;
+    cv::Rect*              _pTextbox;
+    cv::Point*             _pOrigin;
 protected:
     int               _offset;
     std::stringstream _str;
@@ -270,17 +283,17 @@ cv::image_ostream::Debug cv::image_ostream::_Debug;
 image_ostream::~image_ostream()
 {
     if(!_img.empty()){
-        nextLine();
+        _nextLine();
     }
 }
 
-void image_ostream::nextLine()
+void image_ostream::_nextLine()
 {
 #define X(type, name, default_val) const type _##name = _##name##_opt ? _##name##_opt.value() : default_val;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     if(_str.str().empty()){ return; }
-    if(_reverse){ reverse(); }
+    if(_reverse){ _reverseLines(); }
     if(_Debug.draw_origin) cv::drawMarker(_img, _origin, cv::Scalar(0, 0, 255));
 
     const bool oneline = _str.str().find('\n') == std::string::npos;
@@ -298,7 +311,7 @@ void image_ostream::nextLine()
         // to the bottom of characters that go below the line, like 'g' or 'y'
         // height without baseline will cover 'ABC' but not 'g'
         int baseLine;
-        const cv::Size textSize = getLineSize(line, baseLine);
+        const cv::Size textSize = _getLineSize(line, baseLine);
 
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseLine;
@@ -332,7 +345,7 @@ void image_ostream::nextLine()
         _pTextSize->width = max_width;
         _pTextSize->height = _offset; // Negative allowed?
     }
-    if(_pRect)
+    if(_pTextbox)
     {
         // The constructor of 2 points does the math for us
         int x1 = _origin.x;
@@ -351,21 +364,21 @@ void image_ostream::nextLine()
             x2 += max_width;
         }
         const int midline_adj = midline_adj_k * _offset / 2;
-        *_pRect = cv::Rect(
+        *_pTextbox = cv::Rect(
               cv::Point(x1, _origin.y + midline_adj),
               cv::Point(x2, _origin.y + midline_adj + _offset));
     }
-    if(_pPoint)
+    if(_pOrigin)
     {
-        _pPoint->x = _origin.x;
-        _pPoint->y = _origin.y;
+        _pOrigin->x = _origin.x;
+        _pOrigin->y = _origin.y;
     }
 }
 
 image_ostream& image_ostream::operator<<(const image_ostream& new_settings)
 {
     // First, dump out the old string, with old format
-    nextLine();
+    _nextLine();
     // Then, copy over the new settings
 #define X(type, name, default_val) _##name = new_settings._##name;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
@@ -397,8 +410,8 @@ image_ostream::image_ostream(
 #undef X
     , _pLineSizes(nullptr)
     , _pTextSize(nullptr)
-    , _pRect(nullptr)
-    , _pPoint(nullptr)
+    , _pTextbox(nullptr)
+    , _pOrigin(nullptr)
     , _offset(0)
 { (void)_;
 }
@@ -414,8 +427,8 @@ image_ostream::image_ostream(const image_ostream& rhs)
 #undef X
     , _pLineSizes(rhs._pLineSizes)
     , _pTextSize(rhs._pTextSize)
-    , _pRect(rhs._pRect)
-    , _pPoint(rhs._pPoint)
+    , _pTextbox(rhs._pTextbox)
+    , _pOrigin(rhs._pOrigin)
     , _offset(rhs._offset)
     , _str(rhs._str.str())
 {
@@ -482,7 +495,7 @@ image_ostream putText_RelativeTo(
     return fmt;
 }
 
-void image_ostream::reverse()
+void image_ostream::_reverseLines()
 {
     std::string line;
     std::vector<std::string> lines;

@@ -37,6 +37,20 @@ TEST(Normal, "puttext_normal") {
   cv::imwrite(sNormal_FullFile, img);
 }
 
+TEST(NormalSetChains, "puttext_normal_setchains"){
+  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::putText(img, cv::Point(250, 40))
+    .align(cv::image_ostream::TextAlign::Center)
+    .lineSpacing(1.4)
+    .thickness(2)
+    .lineType(cv::LINE_8)
+    .fontFace(cv::FONT_HERSHEY_COMPLEX)
+    .color(fancy::kRed)
+    << BASIC_BLURB;
+
+  cv::imwrite(sNormalSetChains_FullFile, img);
+}
+
 TEST(NormalReuse, "puttext_normal_reuse") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
   {
@@ -280,6 +294,22 @@ TEST(Fancy_Normal, "puttextfancy_normal") {
   cv::imwrite(sFancy_Normal_FullFile, img);
 }
 
+TEST(Fancy_SetChains, "puttextfancy_setchains"){
+  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::putTextShadow(img, cv::Point(250, 40))
+    .align(cv::image_ostream::TextAlign::Center)
+    .lineSpacing(1.4)
+    .thickness(2)
+    .lineType(cv::LINE_8)
+    .fontFace(cv::FONT_HERSHEY_COMPLEX)
+    .color(fancy::kRed)
+    .bgColor(fancy::kGreen)
+    .bgFilled(false)
+    << BASIC_BLURB;
+
+  cv::imwrite(sFancy_SetChains_FullFile, img);
+}
+
 TEST(Fancy_Stack, "puttextfancy_stack") {
   cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
@@ -521,6 +551,7 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
 
 #define ALL_TESTS \
   X(Normal) \
+  X(NormalSetChains) \
   X(NormalReuse) \
   X(NormalPositioning) \
   X(NormalAlignment) \
@@ -531,6 +562,7 @@ TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
   X(Normal_Demo) \
   X(Normal_Sizes) \
   X(Fancy_Normal) \
+  X(Fancy_SetChains) \
   X(Fancy_Stack) \
   X(Fancy_Outline) \
   X(Fancy_Shadow) \

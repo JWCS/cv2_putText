@@ -131,13 +131,6 @@ public:
     //! Prints everything to the cv::Mat in the destructor
     ~image_ostream_fancy();
 
-    //! Size results (only after drawing/destruction!)
-    // Note: can't use movable references, and std::reference_wrapper too buggy
-    image_ostream_fancy& setTextSizeResult (cv::Size* const pSize){ _pTextSize = pSize; return *this; }
-    image_ostream_fancy& setLineSizesResult(std::vector<cv::Size>* const pSizes){ _pLineSizes = pSizes; return *this; }
-    image_ostream_fancy& setTextboxResult(cv::Rect* const pRect){ _pRect = pRect; return *this; }
-    image_ostream_fancy& setOriginResult(cv::Point* const pPoint){ _pPoint = pPoint; return *this; }
-
     //! Self operator<< to chain multiple settings
     image_ostream_fancy& operator<<(const image_ostream_fancy& new_settings);
     image_ostream_fancy& operator<<(const image_ostream& new_settings);
@@ -157,14 +150,29 @@ public:
         return *this;
     }
 
+    //! Size results (only after drawing/destruction!)
+    // Note: can't use movable references, and std::reference_wrapper too buggy
+#define X(type, name) inline image_ostream_fancy& set##name##Result(type* const p){ _p##name = p; return *this; }
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_RESULT_X
+#undef X
+
+    //! Chainable setters
+#define X(type, name, default_val) inline image_ostream_fancy& name(type const x){ _##name = x; return *this; }
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_X
+    CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
+#undef X
+#define X(type, name, default_val) inline image_ostream_fancy& name(std::optional<type> const x){ _##name##_opt = x; return *this; }
+    CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
+#undef X
+
 protected:
     // Does not handle newlines!
-    cv::Size getLineSize(const std::string& text, int& baseline) const
+    cv::Size _getLineSize(const std::string& text, int& baseline) const
     {
-        return cv::getTextSize(text, _fontFace, _fontScale, maxThickness(), &baseline);
+        return cv::getTextSize(text, _fontFace, _fontScale, _maxThickness(), &baseline);
     }
-    void nextLine();
-    int maxThickness() const { return (_outlineColor && (_outlineThickness > 0)) ? _outlineThickness + _thickness : _thickness; }
+    void _nextLine();
+    int _maxThickness() const { return (_outlineColor && (_outlineThickness > 0)) ? _outlineThickness + _thickness : _thickness; }
 
 public:
 #define X(type, name, default_val) type _##name;
@@ -358,17 +366,17 @@ static inline image_ostream_fancy putTextFancy_RelativeTo(
 image_ostream_fancy::~image_ostream_fancy()
 {
     if(!_img.empty()){
-        nextLine();
+        _nextLine();
     }
 }
 
-void image_ostream_fancy::nextLine()
+void image_ostream_fancy::_nextLine()
 {
 #define X(type, name, default_val) const type _##name = _##name##_opt ? _##name##_opt.value() : default_val;
     CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X
 #undef X
     if(_str.str().empty()){ return; }
-    if(_reverse){ reverse(); }
+    if(_reverse){ _reverseLines(); }
     if(_Debug.draw_origin) cv::drawMarker(_img, _origin, cv::Scalar(0, 0, 255));
 
     const bool oneline = _str.str().find('\n') == std::string::npos;
@@ -389,7 +397,7 @@ void image_ostream_fancy::nextLine()
         // to the bottom of characters that go below the line, like 'g' or 'y'
         // height without baseline will cover 'ABC' but not 'g'
         int baseline;
-        const cv::Size textSize = getLineSize(line, baseline);
+        const cv::Size textSize = _getLineSize(line, baseline);
 
         const int line_width = line.empty() ? 0 : textSize.width;
         const int line_height = textSize.height + baseline;
@@ -430,7 +438,7 @@ void image_ostream_fancy::nextLine()
             cv::putText(_img, line,
                 origin(alignment_shift + shadow_offset,
                     _offset + offset_adj + midline_adj + shadow_offset),
-                _fontFace, _fontScale, _outlineColor.value(), maxThickness(),
+                _fontFace, _fontScale, _outlineColor.value(), _maxThickness(),
                 _lineType, false);
         }
 
@@ -449,7 +457,7 @@ void image_ostream_fancy::nextLine()
         _pTextSize->width = max_width;
         _pTextSize->height = _offset; // Negative allowed?
     }
-    if(_pRect)
+    if(_pTextbox)
     {
         // The constructor of 2 points does the math for us
         int x1 = _origin.x;
@@ -468,21 +476,21 @@ void image_ostream_fancy::nextLine()
             x2 += max_width;
         }
         const int midline_adj = midline_adj_k * _offset / 2;
-        *_pRect = cv::Rect(
+        *_pTextbox = cv::Rect(
               cv::Point(x1, _origin.y + midline_adj),
               cv::Point(x2, _origin.y + midline_adj + _offset));
     }
-    if(_pPoint)
+    if(_pOrigin)
     {
-        _pPoint->x = _origin.x;
-        _pPoint->y = _origin.y;
+        _pOrigin->x = _origin.x;
+        _pOrigin->y = _origin.y;
     }
 }
 
 image_ostream_fancy& image_ostream_fancy::operator<<(const image_ostream_fancy& new_settings)
 {
     // First, dump out the old string, with old format
-    nextLine();
+    _nextLine();
     // Then, copy over the new settings
 #define X(type, name, default_val) _##name = new_settings._##name;
     CV2_PUTTEXT_FANCY_HPP__IMAGE_OSTREAM_FANCY_VAR_ARGS_X
@@ -545,9 +553,9 @@ image_ostream_fancy::image_ostream_fancy(const image_ostream& rhs)
 } // namespace cv
 
 /* TODO:
- * The two nextLine() functions are almost identical.
+ * The two _nextLine() functions are almost identical.
  * . Make a drawLine(line, baseline, line_width, line_height, origin_adj)
- *   protected function, that nextLine calls, then rm nextLine from fancy.
+ *   protected function, that _nextLine calls, then rm _nextLine from fancy.
  * . Tho this apparently requires either CRTP or virtuals...
  * The << operator template in class prevents definition of a << operator for
  *   lhs image_ostream and rhs image_ostream_fancy.

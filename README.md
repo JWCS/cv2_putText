@@ -49,10 +49,11 @@ cv::putText(img, cv::Point(40, 40))
 
 std::vector<cv::Size> lineSizes{};
 cv::Size textSize{};
-cv::putText(img, cv::Point(40,40))
-    .setTextSizeResult(&textSize).setLineSizesResult(&lineSizes)
+cv::putText(img, cv::Point(40,40)).set_fontFace(cv::FONT_HERSHEY_COMPLEX).set_reverse(true)
+    .set_TextSizeResult(&textSize).set_LineSizesResult(&lineSizes)
   << "You can get the sizes of each line\nAnd the total size of the text!\n"
   << "Note: only when it actually gets drawn, then are they filled!"
+  << "For convenience, chainable setter methods of the parameters are supported!"
 ;
 ```
 ```cpp
@@ -127,11 +128,22 @@ cv::putText(
     int fontFace = cv::FONT_HERSHEY_SIMPLEX,
     int lineType = cv::LINE_AA, bool bottomLeftOrigin=false);
 
-/* The returned object has the relevent methods: */
-this& setTextSizeResult (            cv::Size * pSize  );
-this& setLineSizesResult(std::vector<cv::Size>* pSizes );
-this& setTextBoxResult  (            cv::Rect * pRect  );
-this& setOriginResult   (            cv::Point* pOrigin);
+/* The returned object has the relevent setters: */
+this& color(cv::Scalar);
+this& thickness(int);
+this& fontScale(double);
+this& lineSpacing(double);
+this& fontFace(int);
+this& lineType(int);
+
+this& bottomLeftOrigin(bool);
+this& align(TextAlign);
+this& reverse(bool);
+
+this& setTextSizeResult (            cv::Size *);
+this& setLineSizesResult(std::vector<cv::Size>*);
+this& setTextBoxResult  (            cv::Rect *);
+this& setOriginResult   (            cv::Point*);
 ```
 There is also a "relative" version, that will set the origin to the side, top/bottom, or inside of a space.
 There's 2 varients, one with cv::Rect and one with cv::Point top-left and cv::Size.
@@ -190,6 +202,13 @@ cv::putTextBackground(
     bool filled = true, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
     int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+
+/* Additional setters, beyond the regular ones */
+this& outlineColor(std::optional<cv::Scalar>);
+this& outlineThickness(int);
+this& shadow(bool);
+this& bgColor(std::optional<cv::Scalar>);
+this& bgFilled(bool);
 
 /* This is the generic version, which can be used to combine the above */
 cv::putTextFancy(
