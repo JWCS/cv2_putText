@@ -83,18 +83,21 @@
 
 namespace fancy {
 
-    static const cv::Scalar kBlack = cv::Scalar::all(0);
-    static const cv::Scalar kWhite = cv::Scalar::all(255);
-    static const cv::Scalar kGrey = cv::Scalar::all(200);
-    static const cv::Scalar kShadow = cv::Scalar::all(50);
-    static const cv::Scalar kRed = cv::Scalar(0, 0, 255);
-    static const cv::Scalar kBlue = cv::Scalar(255, 0, 0);
-    static const cv::Scalar kGreen = cv::Scalar(0x49, 0xB1, 0x54);
+    static const cv::Scalar Black = cv::Scalar::all(0);
+    static const cv::Scalar White = cv::Scalar::all(255);
+    static const cv::Scalar Grey = cv::Scalar::all(200);
+    static const cv::Scalar Shadow = cv::Scalar::all(50);
+    static const cv::Scalar Red = cv::Scalar(0, 0, 255);
+    static const cv::Scalar Blue = cv::Scalar(255, 0, 0);
+    static const cv::Scalar Green = cv::Scalar(0x49, 0xB1, 0x54);
 
     using TextAlign = cv::image_ostream::TextAlign;
     using VertAlign = cv::image_ostream::VertAlign;
     using TA = TextAlign;
     using VA = VertAlign;
+
+    using HorzAlign = cv::image_ostream::TextAlign;
+    using HA = TextAlign;
 
 } // namespace fancy
 
@@ -105,7 +108,8 @@ namespace cv {
   X(int, outlineThickness, 4) \
   X(bool, shadow, false) \
   X(std::optional<Scalar>, bgColor, std::nullopt) \
-  X(bool, bgFilled, true)
+  X(bool, bgFilled, true) \
+  X(bool, bgBaselinePad, true)
 
 //! Creates and return image_ostream_fancy object to render text on the image like the std::cout does.
 //! An image_ostream_fancy class supports operator<< for both primitive and opencv types.
@@ -172,7 +176,11 @@ protected:
         return cv::getTextSize(text, _fontFace, _fontScale, _maxThickness(), &baseline);
     }
     void _nextLine();
-    int _maxThickness() const { return (_outlineColor && (_outlineThickness > 0)) ? _outlineThickness + _thickness : _thickness; }
+    int _maxThickness() const
+    {
+        return (_outlineColor && (_outlineThickness > 0) && !_shadow) ?
+            _outlineThickness + _thickness : _thickness;
+    }
 
 public:
 #define X(type, name, default_val) type _##name;
@@ -189,59 +197,59 @@ static inline image_ostream_fancy operator<<(const image_ostream& lhs, const ima
 
 static inline image_ostream_fancy putTextOutline(
     cv::InputOutputArray img, cv::Point origin,
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    cv::Scalar outlineColor = fancy::kBlack, int outlineThickness = 4,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    cv::Scalar outlineColor = fancy::Black, int outlineThickness = 4,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, false, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, false, std::nullopt, true, true, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextOutline(
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    cv::Scalar outlineColor = fancy::kBlack, int outlineThickness = 4,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    cv::Scalar outlineColor = fancy::Black, int outlineThickness = 4,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
     return putTextOutline(noArray(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineColor, outlineThickness, fontFace);
 }
 
 static inline image_ostream_fancy putTextShadow(
     cv::InputOutputArray img, cv::Point origin,
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int outlineThickness = 4, cv::Scalar outlineColor = fancy::kShadow,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    int outlineThickness = 2, cv::Scalar outlineColor = fancy::Black,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, true, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, outlineColor, outlineThickness, true, std::nullopt, true, true, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextShadow(
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int outlineThickness = 4, cv::Scalar outlineColor = fancy::kShadow,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    int outlineThickness = 2, cv::Scalar outlineColor = fancy::Black,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
     return putTextShadow(noArray(), Point(0,0), color, thickness, fontScale, lineSpacing, outlineThickness, outlineColor, fontFace);
 }
 
 static inline image_ostream_fancy putTextBackground(
     cv::InputOutputArray img, cv::Point origin,
-    cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    bool filled = true, int thickness = 2,
-    double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    cv::Scalar color = fancy::Black, cv::Scalar bgColor = fancy::White,
+    bool filled = true, int thickness = 2, double fontScale = 1.0,
+    bool baselinePad = true, double lineSpacing = 1.1,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return image_ostream_fancy(img, origin, std::nullopt, 0, false, bgColor, filled, color, thickness, fontScale, lineSpacing, fontFace);
+    return image_ostream_fancy(img, origin, std::nullopt, 0, false, bgColor, filled, baselinePad, color, thickness, fontScale, lineSpacing, fontFace);
 }
 
 static inline image_ostream_fancy putTextBackground(
-    cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    bool filled = true, int thickness = 2,
-    double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    cv::Scalar color = fancy::Black, cv::Scalar bgColor = fancy::White,
+    bool filled = true, int thickness = 2, double fontScale = 1.0,
+    bool baselinePad = true, double lineSpacing = 1.1,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX)
 {
-    return putTextBackground(noArray(), Point(0,0), color, bgColor, filled, thickness, fontScale, lineSpacing, fontFace);
+    return putTextBackground(noArray(), Point(0,0), color, bgColor, filled, thickness, fontScale, baselinePad, lineSpacing, fontFace);
 }
 
 /* Note: if the compiler complains about ambigous overload, you can use
@@ -251,11 +259,13 @@ static inline image_ostream_fancy putTextBackground(
 #define CV2_PUTTEXT_FANCY_HPP__putTextFancyApi \
     std::optional<cv::Scalar> outlineColor OPT_ALL_DEF, int outlineThickness = 4, \
     bool shadow = false, \
-    std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true, \
-    cv::Scalar color = fancy::kWhite, int thickness = 2, \
+    std::optional<cv::Scalar> bgColor = std::nullopt, \
+    bool bgFilled = true, bool bgBaselinePad = true, \
+    cv::Scalar color = fancy::White, int thickness = 2, \
     double fontScale = 1.0, double lineSpacing = 1.1, \
-    int fontFace = FONT_HERSHEY_SIMPLEX, \
-    int lineType = cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt, \
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX, \
+    cv::LineTypes lineType = cv::LINE_8, \
+    std::optional<bool> bottomLeftOrigin = std::nullopt, \
     std::optional<image_ostream::TextAlign> align = std::nullopt, \
     std::optional<bool> reverse = std::nullopt
 #define OPT_ALL_DEF
@@ -337,9 +347,9 @@ static inline image_ostream_fancy putTextFancy_RelativeTo(
     InputOutputArray img, const Point& rect_tl, const Size& rect_size,
     image_ostream::TextAlign horz /* = image_ostream::TextAlign::Right */,
     image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
-    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad_x = 6, int pad_y = 0 )
 {
-    return image_ostream_fancy(putText_RelativeTo(img, rect_tl, rect_size, horz, vert, inside, textboxBottomLeftOrigin, pad));
+    return image_ostream_fancy(putText_RelativeTo(img, rect_tl, rect_size, horz, vert, inside, textboxBottomLeftOrigin, pad_x, pad_y));
 }
 
 static inline image_ostream_fancy putTextFancy_RelativeTo(
@@ -355,10 +365,10 @@ static inline image_ostream_fancy putTextFancy_RelativeTo(
     InputOutputArray img, const cv::Rect& rect,
     image_ostream::TextAlign horz /* = image_ostream::TextAlign::Right */,
     image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
-    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
+    bool inside = false, bool textboxBottomLeftOrigin = false, int pad_x = 6, int pad_y = 0 )
 {
     return putTextFancy_RelativeTo(img, rect.tl(), rect.size(),
-        horz, vert, inside, textboxBottomLeftOrigin, pad);
+        horz, vert, inside, textboxBottomLeftOrigin, pad_x, pad_y);
 }
 
 #ifdef CV2_PUTTEXT_FANCY_HPP_IMPL
@@ -420,16 +430,21 @@ void image_ostream_fancy::_nextLine()
 
         // Background mask
         if(_bgColor && line_width > 0){
-            const int rev_mag = _reverse ? -1 : 1; // This isn't a perf fit, but it's a start
-            const int topBaselinePad = with_space(baseline / 2);
+            const int _pad = 6;
+            const int top_baseline_pad = _bgBaselinePad ?
+                (!oneline ? with_space(baseline / 2) : baseline / 2) :
+                with_scale(_pad);
+            const int bot_line_height = _bgBaselinePad ?
+                (!oneline ? with_space(line_height) : line_height) :
+                textSize.height + with_scale(_pad);
             // pad with the top-baseline space; added to mirror the baseline underneath
             //_offset += topBaselinePad;
-            const int _pad = 6;
+            const int rev_mag = _reverse ? -1 : 1; // This isn't a perf fit, but it's a start
             cv::rectangle(_img,
                 origin(with_scale(-_pad) + alignment_shift,
-                    _offset + midline_adj - topBaselinePad * rev_mag),
+                    _offset + midline_adj - top_baseline_pad * rev_mag),
                 origin(with_scale(_pad) + alignment_shift + line_width,
-                    _offset + midline_adj + with_space(line_height) * rev_mag),
+                    _offset + midline_adj + bot_line_height * rev_mag),
                 _bgColor.value(), _bgFilled ? cv::FILLED : 2, cv::LINE_AA);
         }
 
@@ -450,8 +465,10 @@ void image_ostream_fancy::_nextLine()
 
         _offset += offset_height;
     } while (!_str.eof());
+
     _str.str("");
     _str.clear();
+
     if(_pTextSize)
     {
         _pTextSize->width = max_width;

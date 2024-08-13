@@ -1,5 +1,14 @@
 # cv2\_putText(\_fancy).hpp: Modern C++ wrappers for OpenCV's cv::putText
-
+* [Features](#features)
+* [Usage](#usage)
+* [API](#api)
+    * [cv2_putText.hpp](#cv2_puttext.hpp)
+    * [cv2_putText_fancy.hpp](#cv2_puttext_fancy.hpp)
+* [FAQ](#faq)
+* [Style Tips](#style-tips)
+* [Installation](#installation)
+* [License](#license)
+* [Known Issues (TODO)](#known-issues-todo)
 ## Features
 `cv2_putText.hpp`:
 * Modern C++ `std::cout <<`-like syntax for OpenCV's `cv::putText` function
@@ -25,17 +34,17 @@
 #define CV2_PUTTEXT_HPP_IMPL
 #include "cv2_putText.hpp"
 
-const cv::Scalar kRed(0, 0, 255);
-const cv::Scalar kBlue(255, 0, 0);
+const cv::Scalar Red(0, 0, 255);
+const cv::Scalar Blue(255, 0, 0);
 
 cv::Mat img(500, 800, CV_8UC3, cv::Scalar::all(255));
 //               color, thickness, scale, lineSpacing
-auto fmt_BoldRed = cv::putText(kRed, 4, 1.3, 0.9);
+auto fmt_BoldRed = cv::putText(Red, 4, 1.3, 0.9);
 
 cv::putText(img, cv::Point(40, 40))
   << "cv::putText() Demo!" << std::endl
   << "cv::putText(...) << \"Hello\\nWorld\";" << std::endl
-<< cv::putText(kBlue, 2, 0.8)
+<< cv::putText(Blue, 2, 0.8)
   << "You can even change the format mid-chain!" << std::endl
   << "You can use std::endl" << std::endl
   << "or even\\n symbol\nto format text" << std::endl
@@ -49,7 +58,7 @@ cv::putText(img, cv::Point(40, 40))
 
 std::vector<cv::Size> lineSizes{};
 cv::Size textSize{};
-cv::putText(img, cv::Point(40,40)).set_fontFace(cv::FONT_HERSHEY_COMPLEX).set_reverse(true)
+cv::putText(img, cv::Point(40,40)).fontFace(cv::FONT_HERSHEY_COMPLEX).reverse(true)
     .set_TextSizeResult(&textSize).set_LineSizesResult(&lineSizes)
   << "You can get the sizes of each line\nAnd the total size of the text!\n"
   << "Note: only when it actually gets drawn, then are they filled!"
@@ -64,17 +73,17 @@ cv::putText(img, cv::Point(40,40)).set_fontFace(cv::FONT_HERSHEY_COMPLEX).set_re
 #include "cv2_putText_fancy.hpp"
 
 const auto fancy_fmt = cv::putTextFancy(
-    fancy::kBlue, 4, true, fancy::kGreen, false, // blue shadow, green bg
-    fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, cv::LINE_AA, false)
+    fancy::Blue, 4, true, fancy::Green, false, true, // blue shadow, green bg
+    fancy::Red, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, cv::LINE_8, false)
   << "You can save fancy formats as\n\t\tvariables for re-use!" << std::endl;
 
 cv::putTextFancy(img, cv::Point(40, 40))
   << "Fancy cv::putText() Demo!" << std::endl
-<< cv::putTextOutline(fancy::kRed, 4, 1.3, 0.9)
+<< cv::putTextOutline(fancy::Red, 4, 1.3, 0.9)
   << "This text has an outline!" << std::endl
-<< cv::putTextShadow(fancy::kBlue, 2, 0.8)
+<< cv::putTextShadow(fancy::Blue, 2, 0.8)
   << "This text has a shadow!" << std::endl
-<< cv::putTextBackground(fancy::kRed, fancy::kBlue, true, 4, 1.3)
+<< cv::putTextBackground(fancy::Red, fancy::Blue, true, 4, 1.3)
   << "This text has a background!" << std::endl
 
 << fancy_fmt
@@ -88,7 +97,7 @@ cv::putTextFancy(img, cv::Point(40, 40))
   << "\tChanging formats has implicit newline;\n\t\tonly add more if you want the space!"
 << cv::putTextBackground()
   << "\tAnd the newline spacing is the\n\t\tsame size as the format/text!"
-<< cv::putTextBackground(fancy::kBlue, fancy::kRed, 2, 0.7)
+<< cv::putTextBackground(fancy::Blue, fancy::Red, true, 2, 0.7)
   << "To have no gaps in backgrounds," << std::endl
   << "                               " << std::endl
   << "need to fill with whitespace!  " << std::endl
@@ -111,6 +120,7 @@ cv::putText(img, origin) << my_fmt << "Hello, World!" << std::endl;
 ```
 Note, this is implemented as a single file header, so in one and only one .cpp file, the IMPL flags must be defined. See the Installation section for more information.
 
+## API
 With reasonable defaults, the following putText functions are defined in the middle of the .hpp files:
 ### `cv2_putText.hpp`:
 ```cpp
@@ -118,15 +128,20 @@ cv::putText(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
     cv::Scalar color = /* black */, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType = cv::LINE_AA, bool bottomLeftOrigin=false);
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX,
+    cv::LineTypes lineType = cv::LINE_8, bool bottomLeftOrigin = false,
+    Text::Align align = Text::Left, bool reverse = false );
 
-/* Inline version */
+/* Inline version
+ *   for chaining multiple putText calls together,
+ *   to change formatting mid-stream; see usage
+*/
 cv::putText(
     cv::Scalar color = /* black */, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType = cv::LINE_AA, bool bottomLeftOrigin=false);
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX,
+    cv::LineTypes lineType = cv::LINE_8, bool bottomLeftOrigin = false,
+    Text::Align align = Text::Left, bool reverse = false );
 
 /* The returned object has the relevent setters: */
 this& color(cv::Scalar);
@@ -161,7 +176,8 @@ cv::putText_RelativeTo(
     InputOutputArray /* cv::Mat */ img,
     /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
     TextAlign horz = Right, VertAlign vert = Top,
-    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
+    bool inside = false, bool textboxBottomLeftOrigin = false,
+    int pad_x = 6, int pad_y = 0 );
 // Note: textboxBottomLeftOrigin makes all the text go up, instead of drop-down
 
 /* Enumeration types */
@@ -175,33 +191,33 @@ cv::image_ostream::VertAlign { Top, Bottom, Mid } // enum class : unsigned
 /* Note: inline versions are omitted for brevity; just drop the img and origin */
 
 /* Predefined colors used within the fancy putText functions */
-cv::Scalar fancy::kBlack;
-cv::Scalar fancy::kWhite;
-cv::Scalar fancy::kShadow;
-cv::Scalar fancy::kRed;
-cv::Scalar fancy::kGreen;
-cv::Scalar fancy::kBlue;
+cv::Scalar fancy::Black;
+cv::Scalar fancy::White;
+cv::Scalar fancy::Shadow;
+cv::Scalar fancy::Red;
+cv::Scalar fancy::Green;
+cv::Scalar fancy::Blue;
 
 cv::putTextOutline(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    cv::Scalar outlineColor = fancy::kBlack, int outlineThickness = 4,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX);
+    cv::Scalar outlineColor = fancy::Black, int outlineThickness = 4,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX);
 
 cv::putTextShadow(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int outlineThickness = 4, cv::Scalar outlineColor = fancy::kShadow,
-    int fontFace = FONT_HERSHEY_SIMPLEX);
+    int outlineThickness = 2, cv::Scalar outlineColor = fancy::Black,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX);
 
 cv::putTextBackground(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
-    cv::Scalar color = fancy::kBlack, cv::Scalar bgColor = fancy::kWhite,
-    bool filled = true, int thickness = 2,
-    double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX)
+    cv::Scalar color = fancy::Black, cv::Scalar bgColor = fancy::White,
+    bool filled = true, int thickness = 2, double fontScale = 1.0,
+    bool baselinePad = true, double lineSpacing = 1.1,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX);
 
 /* Additional setters, beyond the regular ones */
 this& outlineColor(std::optional<cv::Scalar>);
@@ -209,16 +225,19 @@ this& outlineThickness(int);
 this& shadow(bool);
 this& bgColor(std::optional<cv::Scalar>);
 this& bgFilled(bool);
+this& bgBaselinePad(bool);
 
 /* This is the generic version, which can be used to combine the above */
 cv::putTextFancy(
     cv::InputOutputArray /* cv::Mat */ img, cv::Point origin,
     std::optional<cv::Scalar> outlineColor, int outlineThickness = 4,
     bool shadow = false,
-    std::optional<cv::Scalar> bgColor = std::nullopt, bool bgFilled = true,
-    cv::Scalar color = fancy::kWhite, int thickness = 2,
+    std::optional<cv::Scalar> bgColor = std::nullopt,
+    bool bgFilled = true, bool bgBaselinePad = true,
+    cv::Scalar color = fancy::White, int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX, int lineType = cv::LINE_AA,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX,
+    cv::LineTypes lineType = cv::LINE_8,
     bool bottomLeftOrigin = nullopt(false),
     TextAlign align = nullopt(Left), bool reverse = nullopt(false));
 
@@ -237,7 +256,8 @@ cv::putTextFancy_RelativeTo(
     InputOutputArray /* cv::Mat */ img,
     /* const cv::Rect& rect, */ /* OR */ /* const Point& rect_tl, const Size& rect_size */
     TextAlign horz /* Right */, VertAlign vert = Top,
-    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
+    bool inside = false, bool textboxBottomLeftOrigin = false,
+    int pad_x = 6, int pad_y = 0 );
 // Note: textboxBottomLeftOrigin makes all the text go up, instead of drop-down
 
 /* Enumeration types, in fancy:: */
@@ -246,7 +266,10 @@ fancy::TextAlign { Left, Right, Center } // enum class : unsigned
 fancy::VertAlign { Top, Bottom, Mid } // enum class : unsigned
 fancy::TA = TextAlign; // alias
 fancy::VA = VertAlign; // alias
+fancy::HorzAlign = TextAlign; // alias
+fancy::HA = HorzAlign; // alias
 ```
+## FAQ
 ### Help! I don't see anything!
 To make the `<<` cout-style and formatter chaining work, the **first** `cv::putText` call _must_:
 * be the one with the image and origin (omitting the image == no text)

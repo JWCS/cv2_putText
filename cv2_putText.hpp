@@ -95,8 +95,8 @@ namespace cv {
   X(int, thickness, 2) \
   X(double, fontScale, 1.0) \
   X(double, lineSpacing, 1.1) \
-  X(int, fontFace, cv::FONT_HERSHEY_SIMPLEX) \
-  X(int, lineType, cv::LINE_AA)
+  X(cv::HersheyFonts, fontFace, cv::FONT_HERSHEY_SIMPLEX) \
+  X(cv::LineTypes, lineType, cv::LINE_8)
 
 #define CV2_PUTTEXT_HPP__IMAGE_OSTREAM_VAR_ARGS_OPT_X \
   X(bool, bottomLeftOrigin, false) \
@@ -215,8 +215,8 @@ static inline image_ostream putText(
     InputOutputArray img, Point origin,
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX,
+    cv::LineTypes lineType = cv::LINE_8, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
     std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
     std::optional<bool> reverse = std::nullopt /*false*/ )
 {
@@ -231,8 +231,8 @@ static inline image_ostream putText(
 static inline image_ostream putText(
     Scalar color = cv::Scalar::all(0), int thickness = 2,
     double fontScale = 1.0, double lineSpacing = 1.1,
-    int fontFace = cv::FONT_HERSHEY_SIMPLEX,
-    int lineType=cv::LINE_AA, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
+    cv::HersheyFonts fontFace = cv::FONT_HERSHEY_SIMPLEX,
+    cv::LineTypes lineType = cv::LINE_8, std::optional<bool> bottomLeftOrigin = std::nullopt /*false*/,
     std::optional<image_ostream::TextAlign> align = std::nullopt /*image_ostream::TextAlign::Left*/,
     std::optional<bool> reverse = std::nullopt /*false*/ )
 {
@@ -256,7 +256,8 @@ image_ostream putText_RelativeTo(
     InputOutputArray img, const Point& rect_tl, const Size& rect_size,
     image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
     image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
-    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 );
+    bool inside = false, bool textboxBottomLeftOrigin = false,
+    int pad_x = 6, int pad_y = 0);
 
 static inline image_ostream putText_RelativeTo(
     InputOutputArray img, const cv::Rect& rect,
@@ -271,10 +272,11 @@ static inline image_ostream putText_RelativeTo(
     InputOutputArray img, const cv::Rect& rect,
     image_ostream::TextAlign horz = image_ostream::TextAlign::Right,
     image_ostream::VertAlign vert = image_ostream::VertAlign::Top,
-    bool inside = false, bool textboxBottomLeftOrigin = false, int pad = 6 )
+    bool inside = false, bool textboxBottomLeftOrigin = false,
+    int pad_x = 6, int pad_y = 0)
 {
     return putText_RelativeTo(img, rect.tl(), rect.size(),
-        horz, vert, inside, textboxBottomLeftOrigin, pad);
+        horz, vert, inside, textboxBottomLeftOrigin, pad_x, pad_y);
 }
 
 #ifdef CV2_PUTTEXT_HPP_IMPL
@@ -339,8 +341,10 @@ void image_ostream::_nextLine()
 
         _offset += offset_height;
     } while (!_str.eof());
+
     _str.str("");
     _str.clear();
+
     if(_pTextSize)
     {
         _pTextSize->width = max_width;
@@ -449,10 +453,11 @@ image_ostream putText_RelativeTo(
     if(vert == VA::Mid && horz != TA::Center && !inside)
         return putText_RelativeTo(img, rect_tl, rect_size, horz, vert, inside, pad);
 
+    const int x_pad = inside ? pad : 0; // Never pad if can't hit ref obj
     const int x = rect_tl.x + (
         horz == TA::Center ? rect_size.width / 2 :
-        horz == TA::Right ? rect_size.width - pad : // with_scale?
-        /* Left */ pad ); // with_scale?
+        horz == TA::Right ? rect_size.width - x_pad : // with_scale?
+        /* Left */ x_pad ); // with_scale?
     const bool blOrigin = ((vert == VA::Top) && !inside) || ((vert == VA::Bottom) && inside);
     const int y = rect_tl.y + (
         vert == VA::Top ? (inside ? pad : -pad) :
@@ -470,22 +475,22 @@ image_ostream putText_RelativeTo(
 image_ostream putText_RelativeTo(
     InputOutputArray img, const Point& rect_tl, const Size& rect_size,
     image_ostream::TextAlign horz, image_ostream::VertAlign vert,
-    bool inside, bool textboxBottomLeftOrigin, int pad )
+    bool inside, bool textboxBottomLeftOrigin, int pad_x, int pad_y )
 {
     using TA = image_ostream::TextAlign;
     using VA = image_ostream::VertAlign;
     // Only handle the outside cases here
     if(horz == TA::Center || inside)
-        return putText_RelativeTo(img, rect_tl, rect_size, vert, horz, inside, pad);
+        return putText_RelativeTo(img, rect_tl, rect_size, vert, horz, inside, pad_x);
 
     const bool blOrigin = textboxBottomLeftOrigin;
     // Note: this x has opposite padding directions as other function, bc outside left/right
     const int x = rect_tl.x + (
-        horz == TA::Right ? rect_size.width + pad :
-        /* Left */ -pad );
+        horz == TA::Right ? rect_size.width + pad_x :
+        /* Left */ -pad_x );
     const int y = rect_tl.y + (
-        vert == VA::Top ? (blOrigin ? -pad : pad) :
-        vert == VA::Bottom ? rect_size.height + (blOrigin ? -pad : pad) :
+        vert == VA::Top ? (blOrigin ? -pad_y : pad_y) :
+        vert == VA::Bottom ? rect_size.height + (blOrigin ? -pad_y : pad_y) :
         /* Mid */ rect_size.height / 2 );
     auto fmt = image_ostream(img, cv::Point(x, y));
     if(horz == TA::Left)

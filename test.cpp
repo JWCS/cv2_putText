@@ -30,7 +30,7 @@ static const std::string s##NAME##_FullFile = std::string(FileVar(NAME)) + ".png
 static void NAME()
 
 TEST(Normal, "puttext_normal") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   cv::putText(img, cv::Point(40, 40))
     << BASIC_BLURB;
 
@@ -38,21 +38,21 @@ TEST(Normal, "puttext_normal") {
 }
 
 TEST(NormalSetChains, "puttext_normal_setchains"){
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   cv::putText(img, cv::Point(250, 40))
     .align(cv::image_ostream::TextAlign::Center)
     .lineSpacing(1.4)
     .thickness(2)
     .lineType(cv::LINE_8)
     .fontFace(cv::FONT_HERSHEY_COMPLEX)
-    .color(fancy::kRed)
+    .color(fancy::Red)
     << BASIC_BLURB;
 
   cv::imwrite(sNormalSetChains_FullFile, img);
 }
 
 TEST(NormalReuse, "puttext_normal_reuse") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   {
     auto&& out = cv::putText(img, cv::Point(40, 40));
     out
@@ -62,16 +62,16 @@ TEST(NormalReuse, "puttext_normal_reuse") {
 }
 
 TEST(NormalPositioning, "puttext_normal_positioning") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   const cv::Point origin1(40,40);
-  cv::drawMarker(img, origin1, fancy::kRed);
+  cv::drawMarker(img, origin1, fancy::Red);
   cv::putText(img, "Hg: original cv::putText", origin1, cv::FONT_HERSHEY_SIMPLEX,
-      1.0, fancy::kBlack, 2, cv::LINE_AA, false);
+      1.0, fancy::Black, 2, cv::LINE_AA, false);
 
   const cv::Point origin2(40,140);
-  cv::drawMarker(img, origin2, fancy::kRed);
+  cv::drawMarker(img, origin2, fancy::Red);
   cv::putText(img, "Hg: original cv::putText, bottomLeftOrigin=true", origin2, cv::FONT_HERSHEY_SIMPLEX,
-      1.0, fancy::kBlack, 2, cv::LINE_AA, true);
+      1.0, fancy::Black, 2, cv::LINE_AA, true);
 
   const cv::Point origin3(40,240);
   cv::putText(img, origin3) << "Hg: cv2_putText (+) is origin";
@@ -85,7 +85,7 @@ TEST(NormalPositioning, "puttext_normal_positioning") {
 
 TEST(NormalAlignment, "puttext_normal_alignment") {
   int width = 800;
-  cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, width, CV_8UC3, fancy::White);
 
   cv::putText(img, cv::Point(width/2, 140)) << "Align Left\n";
 
@@ -101,7 +101,7 @@ TEST(NormalAlignment, "puttext_normal_alignment") {
 
 TEST(NormalOnelineCenter, "puttext_normal_onelinecenter"){
   int width = 800;
-  cv::Mat img(500, width, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, width, CV_8UC3, fancy::White);
 
   for(int i = 1; i < 3; ++i){
       {auto fmt = cv::putText(img, cv::Point(width*i/3, 140));
@@ -123,9 +123,9 @@ TEST(NormalOnelineCenter, "puttext_normal_onelinecenter"){
 }
 
 TEST(Normal_RelativeTo, "puttext_normal_relativeto"){
-  cv::Mat img(800, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(800, 800, CV_8UC3, fancy::White);
   const cv::Rect rect(150, 150, 500, 500);
-  cv::rectangle(img, rect, fancy::kGreen, 2);
+  cv::rectangle(img, rect, fancy::Green, 2);
   // 9 pos inside, 12 pos outside
   // Top/bottom, outside and in
   cv::putText_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, false) << "TL";
@@ -160,15 +160,15 @@ TEST(Normal_RelativeTo, "puttext_normal_relativeto"){
 TEST(Normal_RelativeToMultiline, "puttext_normal_relativeto_multiline"){
   const int img_size = 900;
   const int img_pad = 200;
-  cv::Mat img(img_size, img_size, CV_8UC3, fancy::kWhite);
+  cv::Mat img(img_size, img_size, CV_8UC3, fancy::White);
   cv::Rect bbox{};
   cv::Point origin{};
   auto box = [&](){
-      cv::rectangle(img, bbox, fancy::kBlue);
-      cv::drawMarker(img, origin, fancy::kRed);
+      cv::rectangle(img, bbox, fancy::Blue);
+      cv::drawMarker(img, origin, fancy::Red);
   };
   const cv::Rect rect(img_pad, img_pad, img_size - 2*img_pad, img_size - 2*img_pad);
-  cv::rectangle(img, rect, fancy::kGreen, 2);
+  cv::rectangle(img, rect, fancy::Green, 2);
 
   // 9 pos inside, 5*4 pos outside
   // Top/bottom, outside and in
@@ -207,15 +207,15 @@ TEST(Normal_RelativeToMultiline, "puttext_normal_relativeto_multiline"){
 }
 
 TEST(Normal_StackFmts, "puttext_normal_stackfmts"){
-  cv::Mat img(800, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(800, 800, CV_8UC3, fancy::White);
   {
-  cv::putText(img, cv::Point(40, 40), fancy::kBlack, 2)
+  cv::putText(img, cv::Point(40, 40), fancy::Black, 2)
     << "Stacking fmts: " << std::endl
     << "\tDefault black, 2, scale 1, simplex" << std::endl
-  << cv::putText(fancy::kRed, 4, 2, 1.0, cv::FONT_HERSHEY_COMPLEX)
+  << cv::putText(fancy::Red, 4, 2, 1.0, cv::FONT_HERSHEY_COMPLEX)
     << "It's BIGGER!\n\tIt's BADDER!\n"
     << "\tIS IT red, 4, scale 2,\n\t\tcomplex?" // << std::endl
-  << cv::putText(fancy::kGreen, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
+  << cv::putText(fancy::Green, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
     << "Lastly, it's green, 4, scale 0.5,\n\t2x line space, duplex" << std::endl
     << BASIC_BLURB;
   }
@@ -223,14 +223,14 @@ TEST(Normal_StackFmts, "puttext_normal_stackfmts"){
 }
 
 TEST(Normal_Demo, "puttext_normal_demo") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   //               color, thickness, scale, lineSpacing
-  const auto&& fmt_BoldRed = cv::putText(fancy::kRed, 4, 1.3, 0.9);
+  const auto&& fmt_BoldRed = cv::putText(fancy::Red, 4, 1.3, 0.9);
 
   cv::putText(img, cv::Point(40, 40))
     << "cv::putText() Demo!" << std::endl
     << "cv::putText(...) << \"Hello\\nWorld\";" << std::endl
-  << cv::putText(fancy::kBlue, 2, 0.8)
+  << cv::putText(fancy::Blue, 2, 0.8)
     << "You can even change the format mid-chain!" << std::endl
     << "You can use std::endl" << std::endl
     << "or even\\n symbol\nto format text" << std::endl
@@ -245,7 +245,7 @@ TEST(Normal_Demo, "puttext_normal_demo") {
 }
 
 TEST(Normal_Sizes, "puttext_normal_sizes") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   const cv::Point origin(40,40);
   std::vector<cv::Size> lineSizes{};
   cv::Size textSize{};
@@ -259,24 +259,24 @@ TEST(Normal_Sizes, "puttext_normal_sizes") {
   int i = 0;
   for(const cv::Size& lineSize : lineSizes) {
     if(lineSize.width != 0){
-      cv::rectangle(img, lineOrigin, lineOrigin + lineSize, i++ % 2 == 0 ? fancy::kRed : fancy::kBlue);
+      cv::rectangle(img, lineOrigin, lineOrigin + lineSize, i++ % 2 == 0 ? fancy::Red : fancy::Blue);
       // std::cout << "Line " << i << ": " << lineSize.height << ", " << lineSize.width << std::endl;
     }
     lineOrigin.y += lineSize.height;
   }
-  cv::rectangle(img, origin, origin + textSize, fancy::kBlack);
+  cv::rectangle(img, origin, origin + textSize, fancy::Black);
 
   cv::imwrite(sNormal_Sizes_FullFile, img);
 }
 
 // FIXME: this is broken, both with and without the && ref on fmt_base
 TEST(Normal_Refs, "puttext_normal_refs") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kGrey);
+  cv::Mat img(500, 800, CV_8UC3, fancy::Grey);
   {
     // Is this first && truly useless? Or if with a move ctor, prevents a copy?
     auto fmt_base = cv::putText(img, cv::Point(40, 40));
     auto&& fmt_res = fmt_base << "Lots of text\nFrom a reference to base\n!!!\n";
-    fmt_base << cv::putText(fancy::kGreen, 2, 2.0)
+    fmt_base << cv::putText(fancy::Green, 2, 2.0)
       << "\nGreen!\n(Called from reference)\n";
     fmt_res << "\nNo Overwrite! (From base)\n";
   }
@@ -284,24 +284,24 @@ TEST(Normal_Refs, "puttext_normal_refs") {
 }
 
 TEST(Fancy_Normal, "puttextfancy_normal") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
-  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt, false,
-      fancy::kBlack, 1, 1.0, 1.2)
+  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt, false, false,
+      fancy::Black, 1, 1.0, 1.2)
     << BASIC_BLURB;
   cv::imwrite(sFancy_Normal_FullFile, img);
 }
 
 TEST(Fancy_SetChains, "puttextfancy_setchains"){
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   cv::putTextShadow(img, cv::Point(250, 40))
     .align(cv::image_ostream::TextAlign::Center)
     .lineSpacing(1.4)
     .thickness(2)
     .lineType(cv::LINE_8)
     .fontFace(cv::FONT_HERSHEY_COMPLEX)
-    .color(fancy::kRed)
-    .bgColor(fancy::kGreen)
+    .color(fancy::Red)
+    .bgColor(fancy::Green)
     .bgFilled(false)
     << BASIC_BLURB;
 
@@ -309,104 +309,104 @@ TEST(Fancy_SetChains, "puttextfancy_setchains"){
 }
 
 TEST(Fancy_Stack, "puttextfancy_stack") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
-  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt, false,
-      fancy::kBlack, 1, 0.5, 1.2)
+  cv::putTextFancy(img, cv::Point(40, 40), std::nullopt, 0, false, std::nullopt, false, false,
+      fancy::Black, 1, 0.5, 1.2)
     << BASIC_BLURB
   // Note, this is non-fancy putText
-  << cv::putText(fancy::kRed, 4, 2, 1.0, cv::FONT_HERSHEY_COMPLEX)
+  << cv::putText(fancy::Red, 4, 2, 1.0, cv::FONT_HERSHEY_COMPLEX)
     << "\tIS IT red, 4, scale 2,\n\t\tcomplex?" // << std::endl
   /* TODO: is there a viable overload for putText() thats not ambiguous? */
-  << cv::putTextFancy(std::nullopt, 0, false, std::nullopt, false, fancy::kShadow, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
+  << cv::putTextFancy(std::nullopt, 0, false, std::nullopt, false, false, fancy::Shadow, 1, 0.5, 2.0, cv::FONT_HERSHEY_DUPLEX)
     << "Lastly, it's shadow, 1, scale 0.5,\n\t2x line space, duplex" << std::endl
     << BASIC_BLURB;
   cv::imwrite(sFancy_Stack_FullFile, img);
 }
 
 TEST(Fancy_Outline, "puttextfancy_outline") {
-  cv::Mat img(2400, 1600, CV_8UC3, fancy::kGrey);
+  cv::Mat img(2400, 1600, CV_8UC3, fancy::Grey);
   cv::putTextOutline(img, cv::Point(40, 40),
   // Scale 1
-      fancy::kWhite, 1, 1.0, 1.0, fancy::kBlack, 1)
+      fancy::White, 1, 1.0, 1.0, fancy::Black, 1)
     << "Scale 1.0, Thickness 1, Outline 1" << std::endl
-  << cv::putTextOutline(fancy::kWhite, 1, 1.0, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::White, 1, 1.0, 1.0, fancy::Black, 2)
     << "Scale 1.0, Thickness 1, Outline 2" << std::endl
-  << cv::putTextOutline(fancy::kWhite, 1, 1.0, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::White, 1, 1.0, 1.0, fancy::Black, 4)
     << "Scale 1.0, Thickness 1, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kWhite, 2, 1.0, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::White, 2, 1.0, 1.0, fancy::Black, 2)
     << "Scale 1.0, Thickness 2, Outline 2" << std::endl
-  << cv::putTextOutline(fancy::kWhite, 2, 1.0, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::White, 2, 1.0, 1.0, fancy::Black, 4)
     << "Scale 1.0, Thickness 2, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kWhite, 4, 1.0, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::White, 4, 1.0, 1.0, fancy::Black, 4)
     << "Scale 1.0, Thickness 4, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kWhite, 4, 1.0, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::White, 4, 1.0, 1.0, fancy::Black, 2)
     << "Scale 1.0, Thickness 4, Outline 2" << std::endl
   // Scale 2
-  << cv::putTextOutline(fancy::kRed, 1, 2.0, 1.0, fancy::kBlack, 1)
+  << cv::putTextOutline(fancy::Red, 1, 2.0, 1.0, fancy::Black, 1)
     << "Scale 2.0, Thickness 1, Outline 1" << std::endl
-  << cv::putTextOutline(fancy::kRed, 1, 2.0, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::Red, 1, 2.0, 1.0, fancy::Black, 2)
     << "Scale 2.0, Thickness 1, Outline 2" << std::endl
-  << cv::putTextOutline(fancy::kRed, 1, 2.0, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::Red, 1, 2.0, 1.0, fancy::Black, 4)
     << "Scale 2.0, Thickness 1, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kRed, 2, 2.0, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::Red, 2, 2.0, 1.0, fancy::Black, 2)
     << "Scale 2.0, Thickness 2, Outline 2" << std::endl
-  << cv::putTextOutline(fancy::kRed, 2, 2.0, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::Red, 2, 2.0, 1.0, fancy::Black, 4)
     << "Scale 2.0, Thickness 2, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kRed, 4, 2.0, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::Red, 4, 2.0, 1.0, fancy::Black, 4)
     << "Scale 2.0, Thickness 4, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kRed, 4, 2.0, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::Red, 4, 2.0, 1.0, fancy::Black, 2)
     << "Scale 2.0, Thickness 4, Outline 2" << std::endl
   // Scale 0.5
-  << cv::putTextOutline(fancy::kBlue, 1, 0.5, 1.0, fancy::kBlack, 1)
+  << cv::putTextOutline(fancy::Blue, 1, 0.5, 1.0, fancy::Black, 1)
     << "Scale 0.5, Thickness 1, Outline 1" << std::endl
-  << cv::putTextOutline(fancy::kBlue, 1, 0.5, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::Blue, 1, 0.5, 1.0, fancy::Black, 2)
     << "Scale 0.5, Thickness 1, Outline 2" << std::endl
-  << cv::putTextOutline(fancy::kBlue, 1, 0.5, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::Blue, 1, 0.5, 1.0, fancy::Black, 4)
     << "Scale 0.5, Thickness 1, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kBlue, 2, 0.5, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::Blue, 2, 0.5, 1.0, fancy::Black, 2)
     << "Scale 0.5, Thickness 2, Outline 2" << std::endl
-  << cv::putTextOutline(fancy::kBlue, 2, 0.5, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::Blue, 2, 0.5, 1.0, fancy::Black, 4)
     << "Scale 0.5, Thickness 2, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kBlue, 4, 0.5, 1.0, fancy::kBlack, 4)
+  << cv::putTextOutline(fancy::Blue, 4, 0.5, 1.0, fancy::Black, 4)
     << "Scale 0.5, Thickness 4, Outline 4" << std::endl
-  << cv::putTextOutline(fancy::kBlue, 4, 0.5, 1.0, fancy::kBlack, 2)
+  << cv::putTextOutline(fancy::Blue, 4, 0.5, 1.0, fancy::Black, 2)
     << "Scale 0.5, Thickness 4, Outline 2" << std::endl
   ;
   cv::imwrite(sFancy_Outline_FullFile, img);
 }
 
 TEST(Fancy_Shadow, "puttextfancy_shadow") {
-  cv::Mat img(500, 800, CV_8UC3, fancy::kGrey);
-  cv::putTextFancy(img, cv::Point(30, 20), fancy::kShadow, 4, true)
+  cv::Mat img(500, 800, CV_8UC3, fancy::Grey);
+  cv::putTextFancy(img, cv::Point(30, 20), fancy::Shadow, 4, true)
     << "Shadowed Text:\n"
     << "putText(img, orgin, kShadow, 4, true)" << std::endl
   << cv::putText()
     << "Space out with default (reg) putText()" << std::endl
   << cv::putTextShadow()
     << "putTextShadow() for shadowed text" << std::endl
-  << cv::putTextShadow(fancy::kBlue, 3, 1.3)
+  << cv::putTextShadow(fancy::Blue, 3, 1.3)
     << "putTextShadow(kBlue, 3, 1.3)" << std::endl
   ;
   cv::imwrite(sFancy_Shadow_FullFile, img);
 }
 
 TEST(Fancy_Background, "puttextfancy_background") {
-  cv::Mat img(800, 800, CV_8UC3, fancy::kGrey);
+  cv::Mat img(800, 800, CV_8UC3, fancy::Grey);
   cv::putTextFancy(img, cv::Point(30, 20)) // TODO change to non-fancy (or another test non-fancy)... once working
   << cv::putTextBackground()
     << "Default background 'g j p q y'" << std::endl
     << "'g j p q y'        'ABCDEFGHIJ'" << std::endl
-  << cv::putTextBackground(fancy::kBlue)
+  << cv::putTextBackground(fancy::Blue)
     << "Blue text  'g j p q y'" << std::endl
     << "'g j p q y''ABCDEFGHIJ'" << std::endl
-  << cv::putTextBackground(fancy::kRed, fancy::kBlack, true, 2, 0.7)
+  << cv::putTextBackground(fancy::Red, fancy::Black, true, 2, 0.7, false)
     << "Red text, black bg, 2px border, 0.7 size, 'g j p q y'" << std::endl
     << "With no line overlap compression 'g j p q y''ABCDEFGHIJKLM'" << std::endl
-  << cv::putTextBackground(fancy::kBlack, fancy::kGreen, true, 3, 2.0)
+  << cv::putTextBackground(fancy::Black, fancy::Green, true, 3, 2.0, false)
     << "Black text, green bg, 3px border, 2.0 size" << std::endl
-    << "With no line spacing" << std::endl
-  << cv::putTextBackground(fancy::kRed, fancy::kBlack, false, 2, 0.7)
+    << "No padding, with no line spacing" << std::endl
+  << cv::putTextBackground(fancy::Red, fancy::Black, false, 2, 0.7)
     << "Tiny Again, With Border" << std::endl
   << cv::putTextBackground()
     << "Default again" << std::endl
@@ -415,19 +415,19 @@ TEST(Fancy_Background, "puttextfancy_background") {
 }
 
 TEST(Fancy_Demo, "puttextfancy_demo") {
-  cv::Mat img(1600, 1600, CV_8UC3, fancy::kGrey);
+  cv::Mat img(1600, 1600, CV_8UC3, fancy::Grey);
   const auto fancy_fmt = cv::putTextFancy(
-      fancy::kBlue, 4, true, fancy::kGreen, true, // blue shadow, green bg
-      fancy::kRed, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, 8, false)
+      fancy::Blue, 4, true, fancy::Green, true, true, // blue shadow, green bg
+      fancy::Red, 4, 2.0, 1.0, cv::FONT_HERSHEY_COMPLEX, cv::LINE_8, false)
     << "You can save fancy formats as\n\t\tvariables for re-use!" << std::endl;
 
   cv::putTextFancy(img, cv::Point(40, 40))
     << "Fancy cv::putText() Demo!" << std::endl
-  << cv::putTextOutline(fancy::kRed, 4, 1.3, 0.9)
+  << cv::putTextOutline(fancy::Red, 4, 1.3, 0.9)
     << "This text has an outline!" << std::endl
-  << cv::putTextShadow(fancy::kBlue, 2, 0.8)
+  << cv::putTextShadow(fancy::Blue, 2, 0.8)
     << "This text has a shadow!" << std::endl
-  << cv::putTextBackground(fancy::kRed, fancy::kBlue, true, 4, 1.3, 1.0)
+  << cv::putTextBackground(fancy::Red, fancy::Blue, true, 4, 1.3, true, 1.0)
     << "This text has a background!" << std::endl
   << fancy_fmt
     << "You can combine them all!" << std::endl
@@ -439,7 +439,7 @@ TEST(Fancy_Demo, "puttextfancy_demo") {
     << "\tChanging formats has implicit newline;\n\t\tonly add more if you want the space!"
   << cv::putTextBackground()
     << "\tAnd the newline spacing is the\n\t\tsame size as the format/text!"
-  << cv::putTextBackground(fancy::kBlue, fancy::kRed, true, 2, 0.7)
+  << cv::putTextBackground(fancy::Blue, fancy::Red, true, 2, 0.7)
     << "To have no gaps in backgrounds," << std::endl
     << "                               " << std::endl
     << "need to fill with whitespace!  " << std::endl
@@ -449,7 +449,7 @@ TEST(Fancy_Demo, "puttextfancy_demo") {
 }
 
 TEST(Fancy_Sizes, "puttextfancy_sizes") {
-  cv::Mat img(800, 800, CV_8UC3, fancy::kGrey);
+  cv::Mat img(800, 800, CV_8UC3, fancy::Grey);
   const cv::Point origin(40,40);
   std::vector<cv::Size> lineSizes{};
   cv::Size textSize{};
@@ -472,12 +472,12 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
   int i = 0;
   for(const cv::Size& lineSize : lineSizes) {
     if(lineSize.width != 0){
-      cv::rectangle(img, lineOrigin, lineOrigin + lineSize, i++ % 2 == 0 ? fancy::kRed : fancy::kBlue);
+      cv::rectangle(img, lineOrigin, lineOrigin + lineSize, i++ % 2 == 0 ? fancy::Red : fancy::Blue);
       // std::cout << "Line " << i << ": " << lineSize.height << ", " << lineSize.width << std::endl;
     }
     lineOrigin.y += lineSize.height;
   }
-  cv::rectangle(img, origin, origin + textSize, fancy::kBlack);
+  cv::rectangle(img, origin, origin + textSize, fancy::Black);
 
   cv::imwrite(sFancy_Sizes_FullFile, img);
 }
@@ -485,15 +485,15 @@ TEST(Fancy_Sizes, "puttextfancy_sizes") {
 TEST(Fancy_RelativeTo, "puttextfancy_relativeto"){
   const int img_size = 900;
   const int img_pad = 200;
-  cv::Mat img(img_size, img_size, CV_8UC3, fancy::kGrey);
+  cv::Mat img(img_size, img_size, CV_8UC3, fancy::Grey);
   cv::Rect bbox{};
   cv::Point origin{};
   auto box = [&](){
-      cv::rectangle(img, bbox, fancy::kBlue);
-      cv::drawMarker(img, origin, fancy::kRed);
+      cv::rectangle(img, bbox, fancy::Blue);
+      cv::drawMarker(img, origin, fancy::Red);
   };
   const cv::Rect rect(img_pad, img_pad, img_size - 2*img_pad, img_size - 2*img_pad);
-  cv::rectangle(img, rect, fancy::kGreen, 2);
+  cv::rectangle(img, rect, fancy::Green, 2);
 
   cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Left, false).setOriginResult(&origin).setTextboxResult(&bbox) << "TL" << "\nMulti\nLine!"; box();
   cv::putTextFancy_RelativeTo(img, rect, fancy::VertAlign::Top, fancy::TextAlign::Right, false).setOriginResult(&origin).setTextboxResult(&bbox) << cv::putTextOutline() << "TR" << "\nMulti\nLine!"; box();
@@ -513,11 +513,11 @@ TEST(Fancy_RelativeTo, "puttextfancy_relativeto"){
 
 /*
 TEST(Fancy_IntoReg1, "puttextfancy_intoreg1"){
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   cv::putText(img, cv::Point(40, 40))
     << "cv::putText() Demo!" << std::endl
     << "This is the regular putText() with fancy chaining!" << std::endl
-  << cv::putTextOutline(fancy::kRed, 4, 2.0)
+  << cv::putTextOutline(fancy::Red, 4, 2.0)
     << "BUT CAN IT HANDLE << putTextFancy()?" << std::endl
   << cv::putText()
     << "Yes, it can!" << std::endl
@@ -528,10 +528,10 @@ TEST(Fancy_IntoReg1, "puttextfancy_intoreg1"){
 
 /*
 TEST(Fancy_IntoReg2, "puttextfancy_intoreg2"){
-  cv::Mat img(500, 800, CV_8UC3, fancy::kWhite);
+  cv::Mat img(500, 800, CV_8UC3, fancy::White);
   {
     auto fmt_reg = cv::putText(img, cv::Point(40, 40));
-    const auto fmt_fancy = cv::putTextOutline(fancy::kRed, 4, 2.0);
+    const auto fmt_fancy = cv::putTextOutline(fancy::Red, 4, 2.0);
     fmt_reg
       << "cv::putText() Demo!" << std::endl
       << "This is the regular putText() with fancy chaining!" << std::endl
